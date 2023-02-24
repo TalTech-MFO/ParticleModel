@@ -1,0 +1,22 @@
+# Old scripts for compiling
+compile
+hpc_compile
+
+# Backup folder
+backup
+update.log
+do_backup.py
+
+# VS Code settings
+code/.vscode
+.vscode
+
+# Test cases
+test_cases/CMEMS*hires
+
+bin
+code/*.mod
+code/mod
+code/obj
+sync_from_base.sh
+copy_test_cases.sh
