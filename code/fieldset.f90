@@ -414,8 +414,7 @@ contains
     integer                                :: idim
     ! integer                                :: ndim_check
     character(len=LEN_CHAR_L)              :: check_path
-    ! integer, allocatable                   :: dimlen_check(:)
-    ! character(len=LEN_CHAR_S), allocatable :: dimname_check(:)
+    real(rk)                               :: fill_value
     character(len=LEN_CHAR_L)              :: errmsg
 
     dbghead(fieldset :: add_field)
@@ -451,6 +450,12 @@ contains
       fld_ndim = fld_ndim - 1 ! Remove the time dimension
     end if
 
+    ! Search for _FillValue attribute
+    if (.not. nc_get_var_fillvalue(check_path, nc_varname, fill_value)) then
+      call throw_warning("fieldset :: add_field", "No _FillValue attribute found for variable "//trim(nc_varname)//" in "//trim(check_path)//". Using default.")
+      fill_value = MISSING_VAL
+    end if
+
     ! Add the field to the fieldset
     select case (fld_static)
     case (.true.)
@@ -460,7 +465,8 @@ contains
         DBG, "n = ", fld_dimlen(1)
         call this%fields%add_node(field_name, &
                                   t_field_static(n=fld_dimlen(1), &
-                                                 name=nc_varname))
+                                                 name=nc_varname, &
+                                                 fill_value=fill_value))
       case (2)
         DBG, "Adding static 2D field"
         DBG, "n1 = ", fld_dimlen(1)
@@ -468,7 +474,8 @@ contains
         call this%fields%add_node(field_name, &
                                   t_field_static(n1=fld_dimlen(1), &
                                                  n2=fld_dimlen(2), &
-                                                 name=nc_varname))
+                                                 name=nc_varname, &
+                                                 fill_value=fill_value))
       case (3)
         DBG, "Adding static 3D field"
         DBG, "n1 = ", fld_dimlen(1)
@@ -478,7 +485,8 @@ contains
                                   t_field_static(n1=fld_dimlen(1), &
                                                  n2=fld_dimlen(2), &
                                                  n3=fld_dimlen(3), &
-                                                 name=nc_varname))
+                                                 name=nc_varname, &
+                                                 fill_value=fill_value))
       end select
     case (.false.)
       select case (fld_ndim)
@@ -488,7 +496,8 @@ contains
         call this%fields%add_node(field_name, &
                                   t_field_dynamic(n=fld_dimlen(1), &
                                                   timestep=this%nc_timestep, &
-                                                  name=nc_varname))
+                                                  name=nc_varname, &
+                                                  fill_value=fill_value))
       case (2)
         DBG, "Adding dynamic 2D field"
         DBG, "n1 = ", fld_dimlen(1)
@@ -497,7 +506,8 @@ contains
                                   t_field_dynamic(n1=fld_dimlen(1), &
                                                   n2=fld_dimlen(2), &
                                                   timestep=this%nc_timestep, &
-                                                  name=nc_varname))
+                                                  name=nc_varname, &
+                                                  fill_value=fill_value))
       case (3)
         DBG, "Adding dynamic 3D field"
         DBG, "n1 = ", fld_dimlen(1)
@@ -508,7 +518,8 @@ contains
                                                   n2=fld_dimlen(2), &
                                                   n3=fld_dimlen(3), &
                                                   timestep=this%nc_timestep, &
-                                                  name=nc_varname))
+                                                  name=nc_varname, &
+                                                  fill_value=fill_value))
       end select
     end select
 
@@ -588,6 +599,12 @@ contains
     real(rk), optional, intent(in)  :: k
     class(t_variable), pointer :: p_field
 
+    dbghead(fieldset :: get_value_key_real_idx)
+    debug(field_name); debug(t); debug(i); debug(j); 
+    if (present(k)) then
+      debug(k)
+    end if
+
     call this%fields%get_item(field_name, p_field)
 
     select type (p_field)
@@ -607,6 +624,9 @@ contains
       call throw_error("fieldset :: get_value_key_real_idx", "The field must be dynamic 2D or 3D field")
     end select
 
+    debug(res)
+
+    dbgtail(fieldset :: get_value_key_real_idx)
     return
   end function get_value_key_real_idx
   !===========================================
@@ -760,28 +780,19 @@ contains
 
     dbghead(fieldset :: get_indices_vertical)
 
+    debug(t); debug(z); debug(i); debug(j)
+
     dep = this%domain%get_bathymetry(i, j)
+
+    debug(dep)
 
     ! If the bathymetry value is negative, that means that this (i,j) point is on land
     ! and we set the index to the top of the water column and return
-    if (dep < ZERO) then
+    if (isnan(dep)) then
       if (present(k)) k = this%zax_top_idx
       if (present(kr)) kr = real(this%zax_top_idx, rk)
 #ifdef DEBUG
       call throw_warning("fieldset :: get_indices_vertical", "Particle on ground")
-#endif
-      dbgtail(fieldset :: get_indices_vertical)
-      return
-    end if
-
-    ! If the depth is less than the bathymetry, that means that the particle is
-    ! below the bottom of the water column and we set the index to the bottom
-    ! of the water column and return
-    if (z < -ONE * dep) then
-      if (present(k)) k = this%zax_bot_idx
-      if (present(kr)) kr = real(this%zax_bot_idx, rk)
-#ifdef DEBUG
-      call throw_warning("fieldset :: get_indices_vertical", "Out of bounds (z < depth)") ! Better error message
 #endif
       dbgtail(fieldset :: get_indices_vertical)
       return
@@ -809,12 +820,24 @@ contains
       return
     end if
 
+    if (z <= zax(this%zax_bot_idx)) then
+      if (present(k)) k = this%zax_bot_idx
+      if (present(kr)) kr = real(this%zax_bot_idx, rk)
+#ifdef DEBUG
+      call throw_warning("fieldset :: get_indices_vertical", "Out of bounds (z < bottom)") ! Better error message
+#endif
+      dbgtail(fieldset :: get_indices_vertical)
+      return
+    end if
+
     ! Because of the previous checks, we know that the particle is in the water column
     ! and actually in the range of the Z axis. We can now find the indices.
     ik = minloc(abs(zax - z), dim=1)
-    
+    debug(ik)
     if (zax(ik) > z) then
+      DBG, "zax(ik) > z"
       ik = ik - 1
+      debug(ik)
     end if
     dz = (zax(ik + 1) - zax(ik))
     do while (dz <= ZERO) ! It may happen that there are equal values in the Z axis
@@ -822,6 +845,7 @@ contains
       dz = (zax(ik + 1) - zax(ik))
     end do
     ikr = ik + (z - zax(ik)) / dz
+    debug(ikr)
 
     if (present(k)) then
       k = ik
@@ -830,33 +854,6 @@ contains
       kr = ikr
     end if
 
-    ! !---------------------------------------------
-    ! ! ? Could there be a way to do this without looping?
-    ! do ik = 1, this%nz - 1
-    !   if (zax(ik + 1) .ge. z) then
-    !     if ((zax(ik + 1) - zax(ik)) <= ZERO) cycle ! There may be zeros at the bottom
-    !     if (present(k)) then
-    !       k = ik
-    !     end if
-    !     if (present(kr)) then
-    !       kr = ik + (z - zax(ik)) / (zax(ik + 1) - zax(ik))
-    !       if (kr < ONE) kr = ONE
-    !     end if
-    !     dbgtail(fieldset :: get_indices_vertical)
-    !     return
-    !   end if
-    ! end do
-
-!     if (present(k)) then
-!       k = this%nz
-!     end if
-!     if (present(kr)) then
-!       kr = real(this%nz, rk)
-!     end if
-
-! #ifdef DEBUG
-!     call throw_warning("fieldset :: get_indices_vertical", "Did not find vertical index!")
-! #endif
     dbgtail(fieldset :: get_indices_vertical)
     return
   end subroutine get_indices_vertical
@@ -887,7 +884,6 @@ contains
     class(t_variable), pointer       :: p_field
     type(t_field_static_1d), pointer :: zax_slice
     real(rk)                         :: arr_zax(this%nz)
-    ! real(rk), allocatable            :: tmp_zax(:)
     real(rk)                         :: res(this%nz)
     integer                          :: ik
 
@@ -905,7 +901,6 @@ contains
       res = arr_zax * real(this%zax_dir, rk) ! If zax_dir is positive down (-1), then we want to multiply by -1 because particles' coordinates are positive up
     case (LAYER_THICKNESS)
       res = arr_zax
-      ! where (res <= -5.0d0) res = 0.0
       res(1) = -ONE * this%domain%get_bathymetry(i, j) ! Bathymetry is positive down
       do ik = 2, this%zax_top_idx
         res(ik) = res(ik - 1) + arr_zax(ik)
@@ -985,7 +980,7 @@ contains
       return
     end if
 
-    YYYYMMDD = date%shortDate(.false.)
+    YYYYMMDD = date%short_format(.false.)
     do i = 1, this%nentries
       if (this%dirlist(i) .ge. YYYYMMDD) then
         write (testdir, '(a,i0.8)') trim(this%PATH)//'/', this%dirlist(i)
@@ -1105,7 +1100,6 @@ contains
     character(*), intent(in)         :: u_comp_name
 
     ! this%u_idx = this%fields%node_loc(trim(u_comp_name))
-    ! if (this%u_idx < 1) call throw_error("fieldset :: set_u_component", "Did not find "//trim(u_comp_name)//" in fieldset")
     if (.not. this%has_field(trim(u_comp_name))) call throw_error("fieldset :: set_u_component", "Did not find "//trim(u_comp_name)//" in fieldset")
     call this%init_u_mask()
 
@@ -1116,7 +1110,6 @@ contains
     character(*), intent(in)         :: v_comp_name
 
     ! this%v_idx = this%fields%node_loc(trim(v_comp_name))
-    ! if (this%v_idx < 1) call throw_error("fieldset :: set_v_component", "Did not find "//trim(v_comp_name)//" in fieldset")
     if (.not. this%has_field(trim(v_comp_name))) call throw_error("fieldset :: set_v_component", "Did not find "//trim(v_comp_name)//" in fieldset")
     call this%init_v_mask()
 
@@ -1261,31 +1254,6 @@ contains
       end select
     end do
 
-    ! ! Read nc (if - else because loop over subdomains might need to be the other way)
-    ! if (this%has_subdomains) then
-    !   do i_field = 1, this%num_fields
-    !     call this%fields%get_item(i_field, p_field)
-    !     select type (p_field)
-    !     class is (t_field_dynamic)
-    !       call p_field%swap()
-    !       call this%read_field_subdomains(p_field, i_field)
-    !     class default
-    !       call throw_error("fieldset :: update", "Field "//trim(p_field%get_name())//" is not dynamic")
-    !     end select
-    !   end do
-    ! else
-    !   do i_field = 1, this%num_fields
-    !     call this%fields%get_item(i_field, p_field)
-    !     select type (p_field)
-    !     class is (t_field_dynamic)
-    !       call p_field%swap()
-    !       call this%read_field(p_field, i_field)
-    !     class default
-    !       call throw_error("fieldset :: update", "Field "//trim(p_field%get_name())//" is not dynamic")
-    !     end select
-    !   end do
-    ! end if
-
     this%read_idx = this%read_idx + this%read_idx_increment
     if (this%read_idx > this%current_ntimes) then
       this%read_idx = this%read_idx - this%current_ntimes
@@ -1342,6 +1310,8 @@ contains
     real(rk), dimension(:, :, :), allocatable :: buffer
     integer, allocatable                      :: start(:), count(:)
     integer                                   :: i, j
+    integer                                   :: seamask(this%nx, this%ny)
+    real(rk)                                  :: missing_value
     logical                                   :: t_nan, b_nan
 
     t_nan = .false.
@@ -1359,9 +1329,11 @@ contains
     type is (t_field_dynamic_2d)
       varname = p_field%get_name()
       n_dims = p_field%get_dim()
+      missing_value = p_field%get_missing_value()
     type is (t_field_dynamic_3d)
       varname = p_field%get_name()
       n_dims = p_field%get_dim()
+      missing_value = p_field%get_missing_value()
     class default
       call throw_error("fieldset :: read_field", "Field "//trim(p_field%get_name())//" is not 2D or 3D")
     end select
@@ -1387,11 +1359,13 @@ contains
       call nc_read_real_4d(trim(this%current_path), trim(varname), start, count, buffer)
     end if
 
+    seamask = this%domain%get_seamask()
+
     select case (c_field)
     case ("v")
       do j = 1, this%ny
         do i = 1, this%nx
-          if (this%domain%get_bathymetry(i, j) < ZERO) then
+          if (seamask(i, j) == DOM_LAND) then
             buffer(i, j, :) = ZERO
           end if
           ! This is needed due to the A grid
@@ -1412,7 +1386,7 @@ contains
     case ("u")
       do j = 1, this%ny
         do i = 1, this%nx
-          if (this%domain%get_bathymetry(i, j) < ZERO) then
+          if (seamask(i, j) == DOM_LAND) then
             buffer(i, j, :) = ZERO
           end if
           if (this%v_mask(i, j) > 0) then
@@ -1432,16 +1406,18 @@ contains
     case default
       do j = 1, this%ny
         do i = 1, this%nx
-          if (this%domain%get_bathymetry(i, j) < ZERO) then
+          if (seamask(i, j) == DOM_LAND) then
             buffer(i, j, :) = ZERO
           end if
         end do
       end do
     end select
 
-    where (buffer <= MISSING_VAL) buffer = ZERO
+    where (buffer == missing_value) buffer = ZERO
 
-    if (n_dims == 3) then
+    ! It only makes sense to check for NaNs in 3D fields if the
+    ! vertical coordinates are following the bathymetry (adaptive).
+    if (n_dims == 3 .and. this%zax_style /= STATIC_DEPTH_VALUES) then
       t_nan = all(buffer(:, :, this%zax_top_idx) == ZERO)
       b_nan = all(buffer(:, :, this%zax_bot_idx) == ZERO)
     end if
@@ -1466,6 +1442,8 @@ contains
     real(rk), dimension(:, :, :), allocatable     :: buffer, buffer_subdom
     integer, allocatable                          :: start(:), count(:)
     integer                                       :: i, j, i_subdom, ioff, joff, istart, jstart
+    integer                                       :: seamask(this%nx, this%ny)
+    real(rk)                                      :: missing_value
     logical                                       :: t_nan, b_nan
 
     t_nan = .false.
@@ -1483,9 +1461,11 @@ contains
     type is (t_field_dynamic_2d)
       varname = p_field%get_name()
       n_dims = p_field%get_dim()
+      missing_value = p_field%get_missing_value()
     type is (t_field_dynamic_3d)
       varname = p_field%get_name()
       n_dims = p_field%get_dim()
+      missing_value = p_field%get_missing_value()
     class default
       call throw_error("fieldset :: read_field_subdomains", "Field "//trim(p_field%get_name())//" is not 2D or 3D")
     end select
@@ -1541,11 +1521,13 @@ contains
 
     end do
 
+    seamask = this%domain%get_seamask()
+
     select case (c_field)
     case ("v")
       do j = 1, this%ny
         do i = 1, this%nx
-          if (this%domain%get_bathymetry(i, j) < ZERO) then
+          if (seamask(i, j) == DOM_LAND) then
             buffer(i, j, :) = ZERO
           end if
           ! This is needed due to the A grid
@@ -1566,7 +1548,7 @@ contains
     case ("u")
       do j = 1, this%ny
         do i = 1, this%nx
-          if (this%domain%get_bathymetry(i, j) < ZERO) then
+          if (seamask(i, j) == DOM_LAND) then
             buffer(i, j, :) = ZERO
           end if
           if (this%v_mask(i, j) > 0) then
@@ -1586,16 +1568,16 @@ contains
     case default
       do j = 1, this%ny
         do i = 1, this%nx
-          if (this%domain%get_bathymetry(i, j) < ZERO) then
+          if (seamask(i, j) == DOM_LAND) then
             buffer(i, j, :) = ZERO
           end if
         end do
       end do
     end select
 
-    where (buffer <= MISSING_VAL) buffer = ZERO
+    where (buffer == missing_value) buffer = ZERO
 
-    if (n_dims == 3) then
+    if (n_dims == 3 .and. this%zax_style /= STATIC_DEPTH_VALUES) then
       t_nan = all(buffer(:, :, this%zax_top_idx) == ZERO)
       b_nan = all(buffer(:, :, this%zax_bot_idx) == ZERO)
     end if

@@ -156,7 +156,7 @@ contains
     call fieldset%domain%lonlat2xy(p%lon0, p%lat0, x0, y0)
     z0 = p%depth0
 
-    u1 = fieldset%get("U", time, i=i, j=j, k=k); if (isnan(u1)) u1 = ZERO
+    u1 = fieldset%get("U", time, i=i, j=j, k=k); if (isnan(u1)) u1 = ZERO !! isnan(..) is probably not needed
     v1 = fieldset%get("V", time, i=i, j=j, k=k); if (isnan(v1)) v1 = ZERO
 #ifndef NO_ADVECT_VERTICAL
     w1 = fieldset%get("W", time, i=i, j=j, k=k); if (isnan(w1)) w1 = ZERO

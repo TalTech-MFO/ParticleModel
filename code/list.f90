@@ -156,7 +156,6 @@ contains
     type(t_node), pointer     :: current_node
     class(t_variable), pointer :: item
 
-    ! write (*, "('Nodes: ', i4)") this%num_nodes
     FMT2, "Nodes: ", this%num_nodes
     current_node => this%head
     do while (associated(current_node))

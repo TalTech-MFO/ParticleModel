@@ -137,63 +137,69 @@ contains
   !===========================================
   ! CONSTRUCTORS
   !===========================================
-  type(t_field_static_1d) function ctor_field_static_1d(n, name)
+  type(t_field_static_1d) function ctor_field_static_1d(n, name, fill_value)
     integer, intent(in) :: n
     character(len=*), intent(in) :: name
+    real(rk), intent(in) :: fill_value
 
-    call ctor_field_static_1d%init(n, name=name)
+    call ctor_field_static_1d%init(n, name=name, fill_value=fill_value)
 
     return
   end function ctor_field_static_1d
   !===========================================
-  type(t_field_static_2d) function ctor_field_static_2d(n1, n2, name)
+  type(t_field_static_2d) function ctor_field_static_2d(n1, n2, name, fill_value)
     integer, intent(in) :: n1, n2
     character(len=*), intent(in) :: name
+    real(rk), intent(in) :: fill_value
 
-    call ctor_field_static_2d%init(n1, n2, name=name)
+    call ctor_field_static_2d%init(n1, n2, name=name, fill_value=fill_value)
 
     return
   end function ctor_field_static_2d
   !===========================================
-  type(t_field_static_3d) function ctor_field_static_3d(n1, n2, n3, name)
+  type(t_field_static_3d) function ctor_field_static_3d(n1, n2, n3, name, fill_value)
     integer, intent(in) :: n1, n2, n3
     character(len=*), intent(in) :: name
+    real(rk), intent(in) :: fill_value
 
-    call ctor_field_static_3d%init(n1, n2, n3, name=name)
+    call ctor_field_static_3d%init(n1, n2, n3, name=name, fill_value=fill_value)
 
     return
   end function ctor_field_static_3d
   !===========================================
-  type(t_field_dynamic_1d) function ctor_field_dynamic_1d(n, timestep, name)
+  type(t_field_dynamic_1d) function ctor_field_dynamic_1d(n, timestep, name, fill_value)
     integer, intent(in) :: n
     real(rk), intent(in) :: timestep
     character(len=*), intent(in) :: name
+    real(rk), intent(in) :: fill_value
 
-    call ctor_field_dynamic_1d%init(1, [n], name)
+    call ctor_field_dynamic_1d%init(1, [n], name, fill_value=fill_value)
     call ctor_field_dynamic_1d%set_timestep(timestep)
 
     return
   end function ctor_field_dynamic_1d
   !===========================================
-  type(t_field_dynamic_2d) function ctor_field_dynamic_2d(n1, n2, timestep, name)
+  type(t_field_dynamic_2d) function ctor_field_dynamic_2d(n1, n2, timestep, name, fill_value)
     integer, intent(in) :: n1, n2
     real(rk), intent(in) :: timestep
     character(len=*), intent(in) :: name
+    real(rk), intent(in) :: fill_value
 
-    call ctor_field_dynamic_2d%init(2, [n1, n2], name)
+    call ctor_field_dynamic_2d%init(2, [n1, n2], name, fill_value=fill_value)
     call ctor_field_dynamic_2d%set_timestep(timestep)
 
     return
   end function ctor_field_dynamic_2d
   !===========================================
-  type(t_field_dynamic_3d) function ctor_field_dynamic_3d(n1, n2, n3, timestep, name)
+  type(t_field_dynamic_3d) function ctor_field_dynamic_3d(n1, n2, n3, timestep, name, fill_value)
     integer, intent(in) :: n1, n2, n3
     real(rk), intent(in) :: timestep
     character(len=*), intent(in) :: name
+    real(rk), intent(in) :: fill_value
 
     dbghead(ctor_field_dynamic_3d)
 
-    call ctor_field_dynamic_3d%init(3, [n1, n2, n3], name)
+    call ctor_field_dynamic_3d%init(3, [n1, n2, n3], name, fill_value=fill_value)
     call ctor_field_dynamic_3d%set_timestep(timestep)
 
     dbgtail(ctor_field_dynamic_3d)
@@ -202,11 +208,12 @@ contains
   !===========================================
   ! INIT ROUTINES
   !===========================================
-  subroutine init_dynamic(this, ndim, sdim, name, units)
+  subroutine init_dynamic(this, ndim, sdim, name, units, fill_value)
     class(t_field_dynamic), intent(inout) :: this
     integer, intent(in) :: ndim
     integer, dimension(ndim), intent(in) :: sdim
     character(len=*), intent(in), optional :: name, units
+    real(rk), intent(in), optional :: fill_value
 
     dbghead(field :: init_dynamic)
 
@@ -229,6 +236,10 @@ contains
         call this%data_t1%set_name(name)
         call this%data_t2%set_name(name)
       end if
+      if (present(fill_value)) then
+        call this%data_t1%set_missing_value(fill_value)
+        call this%data_t2%set_missing_value(fill_value)
+      end if
 
     type is (t_field_dynamic_2d)
       DBG, "TYPE IS 2D DYNAMIC"
@@ -248,6 +259,10 @@ contains
       if (present(name)) then
         call this%data_t1%set_name(name)
         call this%data_t2%set_name(name)
+      end if
+      if (present(fill_value)) then
+        call this%data_t1%set_missing_value(fill_value)
+        call this%data_t2%set_missing_value(fill_value)
       end if
 
     type is (t_field_dynamic_3d)
@@ -270,6 +285,10 @@ contains
         call this%data_t1%set_name(name)
         call this%data_t2%set_name(name)
       end if
+      if (present(fill_value)) then
+        call this%data_t1%set_missing_value(fill_value)
+        call this%data_t2%set_missing_value(fill_value)
+      end if
     end select
 
     call this%set_dim(ndim)
@@ -282,16 +301,21 @@ contains
       call this%set_name(name)
     end if
 
+    if (present(fill_value)) then
+      call this%set_missing_value(fill_value)
+    end if
+
     dbgtail(field :: init_dynamic)
     return
   end subroutine init_dynamic
 
   !===========================================
-  subroutine init_1d_static(this, n, name, value, units)
+  subroutine init_1d_static(this, n, name, value, units, fill_value)
     class(t_field_static_1d), intent(inout) :: this
     integer, intent(in) :: n
     real(rk), intent(in), optional :: value(n)
     character(len=*), intent(in), optional :: name, units
+    real(rk), intent(in), optional :: fill_value
 
     allocate (this%data(n))
     if (present(value)) then
@@ -307,15 +331,19 @@ contains
     if (present(units)) then
       call this%set_units(units)
     end if
+    if (present(fill_value)) then
+      call this%set_missing_value(fill_value)
+    end if
 
     return
   end subroutine init_1d_static
   !===========================================
-  subroutine init_2d_static(this, n1, n2, name, value, units)
+  subroutine init_2d_static(this, n1, n2, name, value, units, fill_value)
     class(t_field_static_2d), intent(inout) :: this
     integer, intent(in) :: n1, n2
     real(rk), intent(in), optional :: value(n1, n2)
     character(len=*), intent(in), optional :: name, units
+    real(rk), intent(in), optional :: fill_value
 
     allocate (this%data(n1, n2))
     if (present(value)) then
@@ -332,15 +360,19 @@ contains
     if (present(units)) then
       call this%set_units(units)
     end if
+    if (present(fill_value)) then
+      call this%set_missing_value(fill_value)
+    end if
 
     return
   end subroutine init_2d_static
   !===========================================
-  subroutine init_3d_static(this, n1, n2, n3, name, value, units)
+  subroutine init_3d_static(this, n1, n2, n3, name, value, units, fill_value)
     class(t_field_static_3d), intent(inout) :: this
     integer, intent(in) :: n1, n2, n3
     real(rk), intent(in), optional :: value(n1, n2, n3)
     character(len=*), intent(in), optional :: name, units
+    real(rk), intent(in), optional :: fill_value
 
     dbghead(field :: init_3d_static)
 
@@ -366,6 +398,9 @@ contains
     if (present(units)) then
       DBG, "PRESENT UNITS"
       call this%set_units(units)
+    end if
+    if (present(fill_value)) then
+      call this%set_missing_value(fill_value)
     end if
 
     dbgtail(field :: init_3d_static)
@@ -425,15 +460,19 @@ contains
 
     dbghead(field :: interpolate_3d_static)
 
+    debug(x); debug(y); debug(z)
+
     do_bilin = .false.
 
-    i1 = floor(x)
-    j1 = floor(y)
-    k1 = floor(z)
+    i1 = floor(x); debug(i1)
+    j1 = floor(y); debug(j1)
+    k1 = floor(z); debug(k1)
 
     if (i1 >= this%n1 .or. j1 >= this%n2 .or. &
         i1 <= 1 .or. j1 <= 1) then
       res = ZERO
+      DBG, "OUT OF BOUNDS"
+      dbgtail(field :: interpolate_3d_static)
       return
     end if
 
@@ -471,10 +510,10 @@ contains
       return
     end if
 
-    c112 = this%data(i1, j1, k2)
-    c122 = this%data(i1, j2, k2)
-    c212 = this%data(i2, j1, k2)
-    c222 = this%data(i2, j2, k2)
+    c112 = this%data(i1, j1, k2); debug(c112)
+    c122 = this%data(i1, j2, k2); debug(c122)
+    c212 = this%data(i2, j1, k2); debug(c212)
+    c222 = this%data(i2, j2, k2); debug(c222)
 
     call trilinearinterp(x1, x2, y1, y2, z1, z2, c111, c121, c211, c221, c112, c122, c212, c222, x, y, z, res)
     debug(res)

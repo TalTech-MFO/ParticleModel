@@ -36,6 +36,7 @@ module mod_output
 #endif
   !---------------------------------------------
   integer                   :: outputstep, restartstep
+  integer                   :: n_out
   character(len=LEN_CHAR_L) :: outDir
   integer                   :: nc_t_dimid, nc_p_dimid
   character(len=LEN_CHAR_L) :: nc_fileout_all
@@ -71,10 +72,11 @@ contains
 #endif
     end if
 
+    n_out = nTimes / outputstep
     FMT2, var2val(write_all_particles)
     FMT2, var2val(write_active_particles)
     FMT2, "Writing output every ", outputstep, " timesteps, or ", (outputstep * dt) / 3600., "hours"
-    FMT2, "Saving ", nTimes / outputstep, " timesteps"
+    FMT2, "Saving ", n_out, " timesteps"
     if (restartstep > 0) then
       FMT2, "Writing restart every ", restartstep, " timesteps, or ", (restartstep * dt) / 3600., "hours"
     else if (restartstep == 0) then
@@ -212,17 +214,20 @@ contains
     ! Write the output
     ! Gathers all data in a matrix and writes it in one go
     !---------------------------------------------
-    integer, intent(in)   :: nwrite
-    integer               :: ipart, ncid, varid
-    integer, save         :: nc_itime_out = 0
-    real(rk), allocatable :: var(:, :)
-    integer, allocatable  :: var_int(:, :)
-    real(rk)              :: dateval(1)
-
-    call theDate%print_short_date
-    FMT2, "Saving all... ", nwrite, " particles"
+    integer, intent(in)       :: nwrite
+    integer                   :: ipart, ncid, varid
+    integer, save             :: nc_itime_out = 0
+    real(rk), allocatable     :: var(:, :)
+    integer, allocatable      :: var_int(:, :)
+    real(rk)                  :: dateval(1)
+    character(len=LEN_CHAR_L) :: info
 
     nc_itime_out = nc_itime_out + 1
+
+    write (info, '(a,i7,a,i7,a,i9,a)') "| "//theDate%nice_format()//" | Writing output ", nc_itime_out, "/", n_out, " | ", nwrite, " particles |"
+    FMT2, LINE, LINE, LINE
+    FMT2, trim(info)
+
     call nc_check(trim(nc_fileout_all), nf90_open(trim(nc_fileout_all), nf90_write, ncid), "write_data :: open")
     call nc_check(trim(nc_fileout_all), nf90_inq_varid(ncid, "time", varid), "write_data :: inq_varid")
     dateval(1) = theDate%date2num()
@@ -620,11 +625,13 @@ contains
     character(len=LEN_CHAR_L) :: restart_file
     character(len=14) :: time_str
     integer :: ipart
+    character(len=LEN_CHAR_L) :: info
 
-    call theDate%print_short_date
-    FMT2, "Saving restart... ", nwrite, " particles"
+    write (info, '(a,i9,a)') "| "//theDate%nice_format()//" | Writing restart...             | ", nwrite, " particles |"
+    FMT2, LINE, LINE, LINE
+    FMT2, trim(info)
 
-    write (time_str, '(i0.14)') theDate%shortDate(include_time=.true.)
+    write (time_str, '(i0.14)') theDate%short_format(include_time=.true.)
     restart_file = trim(outDir)//"/"//trim(runid)//"."//trim(time_str)//".restart.dat"
 
     open (RESTARTFILE, file=trim(restart_file), action='write', status='new', iostat=ierr)

@@ -37,12 +37,13 @@ contains
   !===========================================
   subroutine loop
     integer           :: itime = 0
-    integer           :: ipart ! , i_release = 1
+    integer           :: ipart
     real(rk)          :: time
     character(len=8)  :: d
     character(len=10) :: t
 #ifndef SAY_LESS
     integer           :: active_particles, inactive_particles
+    character(len=LEN_CHAR_L) :: info
 #endif
 
     FMT1, "======== Starting time loop ========"
@@ -67,10 +68,11 @@ contains
 
 #ifndef SAY_LESS
       if (mod(itime, PROGRESSINFO) .eq. 0) then
-
-        call theDate%print_short_date
         call date_and_time(date=d, time=t)
-        FMT2, t(1:2), ":", t(3:4), ":", t(5:10), " itime = ", itime
+        write (info, "(a,i22,a)") "| "//theDate%nice_format()//" | itime = ", itime, " | Time: "//t(1:2)//":"//t(3:4)//":"//t(5:10)//"  |"
+        FMT2, LINE, LINE, LINE
+        FMT2, trim(info)
+        FMT2, LINE, LINE, LINE
         if (itime .ne. 0) then
           active_particles = 0
           inactive_particles = 0
@@ -84,8 +86,8 @@ contains
             end if
           end do
           END_OMP_DO
-          FMT2, active_particles, " active particles"
-          FMT2, inactive_particles, " inactive particles"
+          FMT2, "| ", active_particles, " active particles"
+          FMT2, "| ", inactive_particles, " inactive particles"
         end if
       end if
 #endif

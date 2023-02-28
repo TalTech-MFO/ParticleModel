@@ -11,7 +11,8 @@ module nc_manager
   !===================================================
   !---------------------------------------------
   public :: nc_read_real_1d, nc_read_real_2d, nc_read_real_3d, nc_read_real_4d, nc_read_time_val, &
-            nc_get_dim_len, nc_get_file_dims, nc_get_var_dims, nc_get_timeunit, nc_var_exists, nc_check
+            nc_get_dim_len, nc_get_file_dims, nc_get_var_dims, nc_get_var_fillvalue, &
+            nc_get_timeunit, nc_attr_exists, nc_var_exists, nc_check
 
   !---------------------------------------------
   ! Public write variables/functions
@@ -512,6 +513,32 @@ call nc_check(trim(fname), nf90_get_var(ncid, varid, dataout, start=start, count
     return
   end subroutine nc_get_var_dims
   !===========================================
+  logical function nc_get_var_fillvalue(fname, vname, fill_value)
+    !---------------------------------------------
+    ! Inquire the fill value of a variable
+    ! Output: fill_value
+    ! Function returns .true. if fill value is found
+    !---------------------------------------------
+    character(len=*), intent(in)  :: fname
+    character(len=*), intent(in)  :: vname
+    real(rk), intent(out)             :: fill_value
+    integer :: ncid, varid, status
+
+    call nc_check(trim(fname), nf90_open(fname, nf90_nowrite, ncid), "get_var_fillvalue :: open")
+    call nc_check(trim(fname), nf90_inq_varid(ncid, vname, varid), "get_var_fillvalue :: inq_var_id "//trim(vname))
+    status = nf90_get_att(ncid, varid, '_FillValue', fill_value)
+    if (status == nf90_enotatt) then
+      nc_get_var_fillvalue = .false.
+    else if (status == nf90_noerr) then
+      nc_get_var_fillvalue = .true.
+    else
+      call nc_check(trim(fname), status, "get_var_fillvalue :: get_attr '_FillValue' "//trim(vname))
+    end if
+    call nc_check(trim(fname), nf90_close(ncid), "get_var_fillvalue :: close")
+
+    return
+  end function nc_get_var_fillvalue
+  !===========================================
   subroutine nc_get_timeunit(fname, timeunit)
 
     integer                       :: ncid, varid
@@ -525,6 +552,22 @@ call nc_check(trim(fname), nf90_get_var(ncid, varid, dataout, start=start, count
 
     return
   end subroutine nc_get_timeunit
+  !===========================================
+  logical function nc_attr_exists(fname, vname, attrname)
+
+    character(len=*), intent(in) :: fname
+    character(len=*), intent(in) :: vname
+    character(len=*), intent(in) :: attrname
+    integer                      :: ncid, varid
+
+    nc_attr_exists = .true.
+    call nc_check(trim(fname), nf90_open(fname, nf90_nowrite, ncid), "nc_attr_exists :: open")
+    call nc_check(trim(fname), nf90_inq_varid(ncid, trim(vname), varid), "nc_attr_exists :: inq_var_id "//trim(vname))
+    if (nf90_inquire_attribute(ncid, varid, trim(attrname)) == nf90_enotatt) nc_attr_exists = .false.
+    call nc_check(trim(fname), nf90_close(ncid), 'nc_attr_exists :: close')
+
+    return
+  end function nc_attr_exists
   !===========================================
   logical function nc_var_exists(fname, vname)
 

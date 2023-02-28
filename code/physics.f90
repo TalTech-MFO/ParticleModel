@@ -143,7 +143,6 @@ contains
     dudy = (uh1 - uh0) / dy; 
     dvdx = (v1h - v0h) / dx; 
     dvdy = (vh1 - vh0) / dy; 
-    ! Ah_s = Cm_smagorinsky * sqrt(HALF * (dudx - dvdy)**2 + HALF * (dudy + dvdx)**2)
     Ah_s = Cm_smagorinsky * (dx * dy) * sqrt(dudx**2 + dvdy**2 + HALF * (dudy + dvdx)**2.)
 
     return
@@ -167,16 +166,8 @@ contains
     real(rk), allocatable         :: zax(:)
     real(rk)                      :: level_idx
 
-    ! if (int(k) /= fieldset%zax_bot_idx) call throw_error("physics :: bottom_stress", "Not bottom layer index!")
-
     level_idx = real(int(k), rk)
     if (fieldset%bottom_is_nan("U")) level_idx = level_idx + ONE
-
-    if (level_idx < fieldset%zax_bot_idx .or. level_idx > fieldset%zax_top_idx) then
-      ERROR, "physics :: bottom_stress :: level_idx out of range"
-      ERROR, "level_idx = ", level_idx
-      ERROR, "bottom_nan = ", fieldset%bottom_is_nan("U")
-    end if
 
     u = fieldset%get("U", time, i, j, k=level_idx)
     v = fieldset%get("V", time, i, j, k=level_idx)

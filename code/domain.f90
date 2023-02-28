@@ -9,7 +9,7 @@ module mod_domain
   use mod_interp, only: bilinearinterp
 !   use mod_params, only: pi
 !   use mod_domain_vars
-  use nc_manager, only: nc_read_real_1d, nc_read_real_2d
+  use nc_manager, only: nc_read_real_1d, nc_read_real_2d, nc_get_var_fillvalue
   implicit none
   private
   !===================================================
@@ -61,6 +61,7 @@ contains
     character(len=*), intent(in) :: topofile
     character(len=*), intent(in) :: lon, lat, bathy ! Variable names
     integer :: ii, jj
+    real(rk) :: fill_value
 
     d%nx = nx
     d%ny = ny
@@ -68,8 +69,8 @@ contains
     allocate (d%lons(nx), d%lats(ny))
 
     FMT2, "Reading coordinates"
-    call nc_read_real_1d(trim(TOPOFILE), trim(lon), nx, d%lons)
-    call nc_read_real_1d(trim(TOPOFILE), trim(lat), ny, d%lats)
+    call nc_read_real_1d(trim(topofile), trim(lon), nx, d%lons)
+    call nc_read_real_1d(trim(topofile), trim(lat), ny, d%lats)
 
     d%lboundy = d%lats(1); d%uboundy = d%lats(ny); d%dlat = d%lats(2) - d%lats(1); d%dy = d%dlat * 60.*1852.
     d%lboundx = d%lons(1); d%uboundx = d%lons(nx); d%dlon = d%lons(2) - d%lons(1); d%dx = d%dlon * 60.*1852.*cos(0.5 * (d%lboundy + d%uboundy) * pi / 180.)
@@ -85,19 +86,31 @@ contains
     allocate (d%depdata(nx, ny), d%seamask(nx, ny))
 
     FMT2, "Reading bathymetry"
-    call nc_read_real_2d(trim(TOPOFILE), trim(bathy), nx, ny, d%depdata)
+    call nc_read_real_2d(trim(topofile), trim(bathy), nx, ny, d%depdata)
+    if (any(isnan(d%depdata))) then
+      FMT3, "Bathymetry contains NaNs. Not trying to find fill value."
+    else
+      if (.not. nc_get_var_fillvalue(trim(topofile), trim(bathy), fill_value)) then
+        ! Assuming that the fill value is a large negative number
+        fill_value = minval(d%depdata)
+        call throw_warning("domain :: domain", "Could not find fill value for bathymetry. Assuming that the fill value is a large negative number.")
+      end if
+      FMT3, "Fill value for bathymetry is assumed to be ", fill_value
+      where (d%depdata == fill_value) d%depdata = ieee_value(ZERO, ieee_quiet_nan)
+    end if
 
     !---------------------------------------------
     ! TODO: Seamask could have another value (4) to represent boundaries.
     !       Boundary should have a thickness!
     FMT2, "Making seamask"
+
     do ii = 2, nx - 1
       do jj = 2, ny - 1
-        if (d%depdata(ii, jj) .gt. ZERO) then
-          if ((d%depdata(ii + 1, jj) .le. 0.0) .or. (d%depdata(ii - 1, jj) .le. 0.0) .or. &
-              (d%depdata(ii, jj + 1) .le. 0.0) .or. (d%depdata(ii, jj - 1) .le. 0.0) .or. &
-              (d%depdata(ii + 1, jj + 1) .le. 0.0) .or. (d%depdata(ii + 1, jj - 1) .le. 0.0) .or. &
-              (d%depdata(ii - 1, jj - 1) .le. 0.0) .or. (d%depdata(ii - 1, jj + 1) .le. 0.0)) then
+        if (.not. isnan(d%depdata(ii, jj))) then
+          if ((isnan(d%depdata(ii + 1, jj))) .or. (isnan(d%depdata(ii - 1, jj))) .or. &
+              (isnan(d%depdata(ii, jj + 1))) .or. (isnan(d%depdata(ii, jj - 1))) .or. &
+              (isnan(d%depdata(ii + 1, jj + 1))) .or. (isnan(d%depdata(ii + 1, jj - 1))) .or. &
+              (isnan(d%depdata(ii - 1, jj - 1))) .or. (isnan(d%depdata(ii - 1, jj + 1)))) then
             d%seamask(ii, jj) = DOM_BEACH
           else
             d%seamask(ii, jj) = DOM_SEA
@@ -108,24 +121,24 @@ contains
       end do
     end do
     do ii = 1, nx
-      if (d%depdata(ii, 1) .gt. ZERO) then
+      if (.not. isnan(d%depdata(ii, 1))) then
         d%seamask(ii, 1) = DOM_BOUNDARY
       else
         d%seamask(ii, 1) = DOM_LAND
       end if
-      if (d%depdata(ii, ny) .gt. ZERO) then
+      if (.not. isnan(d%depdata(ii, ny))) then
         d%seamask(ii, ny) = DOM_BOUNDARY
       else
         d%seamask(ii, ny) = DOM_LAND
       end if
     end do
     do jj = 1, ny
-      if (d%depdata(1, jj) .gt. ZERO) then
+      if (.not. isnan(d%depdata(1, jj))) then
         d%seamask(1, jj) = DOM_BOUNDARY
       else
         d%seamask(1, jj) = DOM_LAND
       end if
-      if (d%depdata(nx, jj) .gt. ZERO) then
+      if (.not. isnan(d%depdata(nx, jj))) then
         d%seamask(nx, jj) = DOM_BOUNDARY
       else
         d%seamask(nx, jj) = DOM_LAND
@@ -393,23 +406,30 @@ contains
     integer :: it
     real(rk) :: irt
 
+    dbghead(domain :: get_index)
+
     select case (dim)
     case (1)
+      DBG, "dim = 1"
       ! Longitude
       ! Check bounds
       if (loc < this%lboundx) then
+        DBG, "loc < this%lboundx"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = 1
         if (present(ir)) ir = ONE
+        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lon is less than lboundx")
 #endif
       end if
       if (loc > this%uboundx) then
+        DBG, "loc > this%uboundx"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = this%nx
         if (present(ir)) ir = real(this%nx, rk)
+        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lon is greater than uboundx")
@@ -417,29 +437,38 @@ contains
       end if
       ! Get indices
       it = minloc(abs(this%lons - loc), dim=1)
+      debug(it)
       if (this%lons(it) > loc) then
+        DBG, "this%lons(it) > loc"
         it = it - 1
+        debug(it)
       end if
       ! Get real indices
       irt = it + (loc - this%lons(it)) / (this%lons(it + 1) - this%lons(it))
+      debug(irt)
       if (present(i)) i = it
       if (present(ir)) ir = irt
     case (2)
+      DBG, "dim = 2"
       ! Latitude
       ! Check bounds
       if (loc < this%lboundy) then
+        DBG, "loc < this%lboundy"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = 1
         if (present(ir)) ir = ONE
+        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lat is less than lboundy")
 #endif
       end if
       if (loc > this%uboundy) then
+        DBG, "loc > this%uboundy"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = this%ny
         if (present(ir)) ir = real(this%ny, rk)
+        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lat is greater than uboundy")
@@ -447,182 +476,23 @@ contains
       end if
       ! Get indices
       it = minloc(abs(this%lats - loc), dim=1)
+      debug(it)
       if (this%lats(it) > loc) then
+        DBG, "this%lats(it) > loc"
         it = it - 1
+        debug(it)
       end if
       ! Get real indices
       irt = it + (loc - this%lats(it)) / (this%lats(it + 1) - this%lats(it))
+      debug(irt)
       if (present(i)) i = it
       if (present(ir)) ir = irt
     case default
       call throw_error("domain :: get_index", "dim must be 1 or 2")
     end select
 
+    dbgtail(domain :: get_index)
     return
   end subroutine get_index
-  !===========================================
-  subroutine get_indices_2d_old(this, lon, lat, i, j, ir, jr)
-    !---------------------------------------------
-    ! Should integer indices be int(irt) or nint(irt) (nearest)?
-    !---------------------------------------------
-    class(t_domain), intent(in) :: this
-
-    real(rk), intent(in)            :: lon, lat
-    integer, optional, intent(out)  :: i, j
-    real(rk), optional, intent(out) :: ir, jr
-    integer                         :: it, jt
-    real(rk)                        :: irt, jrt
-
-    it = minloc(abs(this%lons - lon), dim=1); 
-    jt = minloc(abs(this%lats - lat), dim=1); 
-    ! if (this%lons(it) > lon) it = it - 1
-    ! if (this%lats(jt) > lat) jt = jt - 1
-
-    if (it == this%nx) then
-
-      if (lon > this%lons(this%nx)) then
-#ifdef SNAP_TO_BOUNDS
-
-        irt = real(this%nx, rk)
-#else
-        call throw_error("domain :: get_indices_2d", "it is greater than nx")
-#endif
-      else
-        if (this%lons(it) > lon) it = it - 1 ! This is probably always true
-        irt = it + (lon - this%lons(it)) / (this%lons(it + 1) - this%lons(it))
-      end if
-    else if (it == 1) then
-
-      if (lon < this%lons(1)) then
-#ifdef SNAP_TO_BOUNDS
-
-        irt = ONE
-#else
-        call throw_error("domain :: get_indices_2d", "it is less than 1")
-#endif
-      else
-        ! if (this%lons(it) > lon) it = it - 1
-        irt = it + (lon - this%lons(it)) / (this%lons(it + 1) - this%lons(it))
-      end if
-    else
-      if (this%lons(it) > lon) it = it - 1
-      irt = it + (lon - this%lons(it)) / (this%lons(it + 1) - this%lons(it))
-    end if
-
-    if (jt == this%ny) then
-
-      if (lat > this%lats(this%ny)) then
-#ifdef SNAP_TO_BOUNDS
-
-        jrt = real(this%ny, rk)
-#else
-        call throw_error("domain :: get_indices_2d", "jt is greater than ny")
-#endif
-      else
-        if (this%lats(jt) > lat) jt = jt - 1 ! Also always true
-        jrt = jt + (lat - this%lats(jt)) / (this%lats(jt + 1) - this%lats(jt))
-      end if
-    else if (jt == 1) then
-
-      if (lat < this%lats(1)) then
-#ifdef SNAP_TO_BOUNDS
-
-        jrt = ONE
-#else
-        call throw_error("domain :: get_indices_2d", "jt is less than 1")
-#endif
-      else
-        ! if (this%lats(jt) > lat) jt = jt - 1
-        jrt = jt + (lat - this%lats(jt)) / (this%lats(jt + 1) - this%lats(jt))
-      end if
-    else
-      if (this%lats(jt) > lat) jt = jt - 1
-      jrt = jt + (lat - this%lats(jt)) / (this%lats(jt + 1) - this%lats(jt))
-    end if
-
-    if (present(i)) then
-      i = it; 
-      if (i < 1) call throw_error("domain :: get_indices_2d", "i is less than 1")
-      if (i > this%nx) call throw_error("domain :: get_indices_2d", "i is greater than nx")
-    end if
-
-    if (present(j)) then
-      j = jt; 
-      if (j < 1) call throw_error("domain :: get_indices_2d", "j is less than 1")
-      if (j > this%ny) call throw_error("domain :: get_indices_2d", "j is greater than ny")
-    end if
-
-    if (present(ir)) then
-      ir = irt; 
-      if (ir < ONE) call throw_error("domain :: get_indices_2d", "ir is less than 1")
-      if (ir > real(this%nx, rk)) call throw_error("domain :: get_indices_2d", "ir is greater than nx")
-    end if
-
-    if (present(jr)) then
-      jr = jrt; 
-      if (jr < ONE) call throw_error("domain :: get_indices_2d", "jr is less than 1")
-      if (jr > real(this%ny, rk)) call throw_error("domain :: get_indices_2d", "jr is greater than ny")
-    end if
-
-    return
-  end subroutine get_indices_2d_old
-  !===========================================
-!   subroutine get_indices_2d(this, lon, lat, i, j, ir, jr)
-!     !---------------------------------------------
-!     ! Should integer indices be int(irt) or nint(irt) (nearest)?
-!     !---------------------------------------------
-!     class(t_domain), intent(in) :: this
-
-!     real(rk), intent(in)            :: lon, lat
-!     integer, optional, intent(out)  :: i, j
-!     real(rk), optional, intent(out) :: ir, jr
-!     real(rk)                        :: irt, jrt
-
-!
-
-!
-
-!     irt = (lon - this%lboundx) / this%dlon + 1
-!     jrt = (lat - this%lboundy) / this%dlat + 1
-
-! #ifdef SNAP_TO_BOUNDS
-!     ! This is probably only necessary in case of large time steps
-!     if (irt <= ONE) irt = ONE
-!     if (irt > real(this%nx, rk)) irt = real(this%nx, rk)
-
-!     if (jrt <= ONE) jrt = ONE
-!     if (jrt > real(this%ny, rk)) jrt = real(this%ny, rk)
-! #endif
-
-!
-!
-
-!     if (present(i)) then
-!       i = int(irt);
-!       if (i < 1) call throw_error("domain :: get_indices_2d", "i is less than 1")
-!       if (i > this%nx) call throw_error("domain :: get_indices_2d", "i is greater than nx")
-!     end if
-
-!     if (present(j)) then
-!       j = int(jrt);
-!       if (j < 1) call throw_error("domain :: get_indices_2d", "j is less than 1")
-!       if (j > this%ny) call throw_error("domain :: get_indices_2d", "j is greater than ny")
-!     end if
-
-!     if (present(ir)) then
-!       ir = irt;
-!       if (ir < ONE) call throw_error("domain :: get_indices_2d", "ir is less than 1")
-!       if (ir > real(this%nx, rk)) call throw_error("domain :: get_indices_2d", "ir is greater than nx")
-!     end if
-
-!     if (present(jr)) then
-!       jr = jrt;
-!       if (jr < ONE) call throw_error("domain :: get_indices_2d", "jr is less than 1")
-!       if (jr > real(this%ny, rk)) call throw_error("domain :: get_indices_2d", "jr is greater than ny")
-!     end if
-
-!
-!     return
-!   end subroutine get_indices_2d
 
 end module mod_domain

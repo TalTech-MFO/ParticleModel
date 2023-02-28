@@ -27,7 +27,8 @@ module mod_datetime
     procedure :: isleap
     procedure :: yearday
     procedure :: date2num
-    procedure :: shortDate
+    procedure :: short_format
+    procedure :: nice_format
     !---------------------------------------------
     ! Operator overloading
     procedure, pass(this) :: date_gt
@@ -313,7 +314,7 @@ contains
 
   end function daysInYear
   !===========================================
-  elemental integer(rk) function shortDate(this, include_time)
+  elemental integer(rk) function short_format(this, include_time)
     !---------------------------------------------
     ! Date in short format (YYYYMMDD)
     ! If include_time is true, then include time, too (for output)
@@ -325,13 +326,25 @@ contains
     select case (include_time)
     case (.false.)
       write (formatout, '(i0.4,i0.2,i0.2)') this%year, this%month, this%day
-      read (formatout, *) shortDate
+      read (formatout, *) short_format
     case (.true.)
       write (formatout, '(i0.4,i0.2,i0.2,i0.2,i0.2,i0.2)') this%year, this%month, this%day, this%hour, this%minute, this%second
-      read (formatout, *) shortDate
+      read (formatout, *) short_format
     end select
 
-  end function shortDate
+    return
+  end function short_format
+  !===========================================
+  elemental character(len=19) function nice_format(this)
+    !---------------------------------------------
+    ! Date in nice format (YYYY-MM-DD HH:MM:SS)
+    !---------------------------------------------
+    class(t_datetime), intent(in) :: this
+
+    write (nice_format, '(i0.4,"-",i0.2,"-",i0.2," ",i0.2,":",i0.2,":",i0.2)') this%year, this%month, this%day, this%hour, this%minute, this%second
+
+    return
+  end function nice_format
   !===========================================
   elemental logical function date_gt(this, other) result(gt)
     !---------------------------------------------

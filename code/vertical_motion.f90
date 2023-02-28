@@ -29,13 +29,17 @@ contains
     real(rk), intent(in)            :: time
     real(rk)                        :: vert_vel
 
+    dbghead(vertical_motion :: vertical_velocity)
+
     vert_vel = buoyancy(p, fieldset, time, p%delta_rho, p%kin_visc) + resuspension(p, fieldset, time, p%u_star)
+    debug(vert_vel)
 
     p%depth1 = p%depth1 + (vert_vel * dt)
     ! p%w1 = p%w1 + vert_vel
     p%vel_vertical = vert_vel
     call fieldset%search_indices(t=time, x=p%lon1, y=p%lat1, z=p%depth1, k=p%k1, kr=p%kr1)
 
+    dbgtail(vertical_motion :: vertical_velocity)
     return
   end subroutine vertical_velocity
   !===========================================
@@ -56,31 +60,30 @@ contains
     real(rk) :: i, j, k
     real(rk), intent(out) :: u_star
 
+    dbghead(vertical_motion :: resuspension)
+
     res = ZERO
     u_star = ZERO
     if (p%state /= ST_BOTTOM) then
+      dbgtail(vertical_motion :: resuspension)
       return
     end if
 
     if (resuspension_coeff >= ZERO) then
 
-      i = p%ir0
-      j = p%jr0
-      k = p%kr0
-
-      if (k < fieldset%zax_bot_idx .or. k >= fieldset%zax_top_idx) then
-        ERROR, "Resuspension: about to call bottom_friction_velocity with k out of bounds"
-        ERROR, "i,j,k = ", i, j, k
-        ERROR, "particle state = ", p%state
-        ERROR, "particle depth = ", p%depth0, p%depth1
-      end if
+      i = p%ir0; debug(i)
+      j = p%jr0; debug(j)
+      k = p%kr0; debug(k)
 
       u_star = bottom_friction_velocity(fieldset, time, i, j, k)
+      debug(u_star)
       if (u_star > resuspension_threshold) then
         res = u_star * resuspension_coeff
+        debug(res)
       end if
     end if
 
+    dbgtail(vertical_motion :: resuspension)
     return
   end function resuspension
   !===========================================
@@ -97,26 +100,34 @@ contains
     real(rk), intent(out)           :: delta_rho ! Density difference
     real(rk), intent(out)           :: kin_visc  ! Kinematic viscosity (surrounding the particle)
 
+    dbghead(vertical_motion :: buoyancy)
+
     res = ZERO
     if (p%state /= ST_SUSPENDED) then
+      dbgtail(vertical_motion :: buoyancy)
       return
     end if
 
-    i = p%ir0
-    j = p%jr0
-    k = p%kr0
+    i = p%ir0; debug(i)
+    j = p%jr0; debug(j)
+    k = p%kr0; debug(k)
 
     rho_sw = ONE
 
     ! Density
     rho_sw = seawater_density(fieldset, time, i, j, k, p%depth0)
+    debug(rho_sw)
     delta_rho = p%rho - rho_sw
+    debug(delta_rho)
 
     ! Viscosity
     kin_visc = seawater_viscosity(fieldset, time, i, j, k, p%depth0)
+    debug(kin_visc)
 
     res = Kooi_vertical_velocity(delta_rho, p%radius, rho_sw, kin_visc)
+    debug(res)
 
+    dbgtail(vertical_motion :: buoyancy)
     return
   end function buoyancy
   !===========================================
@@ -141,7 +152,7 @@ contains
                      - (0.00575 * log10(d_star)**3.) + (0.00056 * log10(d_star)**4.))
     end if
     if (delta_rho > ZERO) then
-      res = -1.0 * ((delta_rho / rho_env) * g * w_star * kin_visc)**(1./3.) ! Getting NaNs with -1*g
+      res = -1.0 * ((delta_rho / rho_env) * g * w_star * kin_visc)**(1./3.)
     else
       res = (-1.0 * (delta_rho / rho_env) * g * w_star * kin_visc)**(1./3.)
     end if

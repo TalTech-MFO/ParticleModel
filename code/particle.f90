@@ -558,10 +558,6 @@ contains
     this%j1 = j1; 
     this%ir1 = ir1; 
     this%jr1 = jr1; 
-    ! this%lon1 = fieldset%domain%get_lons(ir1);
-
-    ! this%lat1 = fieldset%domain%get_lats(jr1);
-
     return
 
   contains
@@ -853,9 +849,9 @@ contains
 
     select case (particle_init_method)
     case (TXT_FILE)
-      call init_particles_from_coordfile(fieldset) ! particle.f90
+      call init_particles_from_coordfile(fieldset)
     case (NC_FILE)
-      call init_particles_from_netcdf(fieldset)    ! particle.f90
+      call init_particles_from_netcdf(fieldset)
     end select
 
     if (restart) then
@@ -878,7 +874,7 @@ contains
     character(len=14) :: time_str
     logical  :: file_exists
 
-    write (time_str, '(i0.14)') run_start_dt%shortDate(include_time=.true.)
+    write (time_str, '(i0.14)') run_start_dt%short_format(include_time=.true.)
 
     restart_filename = trim(restart_path)//"/"//trim(runid)//"."//trim(time_str)//".restart.dat"
 
@@ -916,7 +912,7 @@ contains
     integer  :: state
     logical  :: kill_beached, kill_boundary, is_active
 
-    write (time_str, '(i0.14)') run_start_dt%shortDate(include_time=.true.)
+    write (time_str, '(i0.14)') run_start_dt%short_format(include_time=.true.)
 
     restart_filename = trim(restart_path)//"/"//trim(runid)//"."//trim(time_str)//".restart.dat"
 
@@ -1007,7 +1003,6 @@ contains
       call domain%get_index(this%x(ipart), i=i, dim=1)
       call domain%get_index(this%y(ipart), i=j, dim=2)
       if (seamask(i, j) == DOM_LAND) then
-        ! call throw_warning("particle_vars :: check_initial_coordinates", "Particle initialised on land")
         this%is_active(ipart) = .false.
         on_land = on_land + 1
 #ifdef IGNORE_BAD_PARTICLES
@@ -1021,8 +1016,6 @@ contains
     if (on_land > 0) then
       call throw_warning("particle_vars :: check_initial_coordinates", "Particles initialised on land")
       WARNING, on_land, " of ", this%n_particles, " particles on land, time idx = ", this%time_idx
-      ! else
-      !   FMT2, "Initial coordinates OK"
     end if
 #ifdef IGNORE_BAD_PARTICLES
     ! Check that n_good_particles + n_bad_particles = n_particles
@@ -1043,7 +1036,6 @@ contains
     type(t_fieldset), intent(in) :: fieldset
     integer :: ipart
 
-    !print
     FMT1, "======== Init particles ========"
 
     allocate (init_coords(1))
@@ -1074,7 +1066,6 @@ contains
       n_particles = 0
     end if
 
-    !print
     FMT2, "Finished init particles"
 
   end subroutine init_particles_from_coordfile

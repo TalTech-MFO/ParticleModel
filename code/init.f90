@@ -25,7 +25,9 @@ module mod_initialise
   use mod_datetime
   use mod_biofouling, only: init_biofouling
   use mod_params, only: do_diffusion, do_velocity, do_biofouling, advection_method, &
-     diffusion_hor_const, diffusion_vert_const, run_3d, Cm_smagorinsky, resuspension_coeff, resuspension_threshold, roughness_height
+                        g, k_b, kin_visc_default, sw_rho_default, &
+                        diffusion_hor_const, diffusion_vert_const, run_3d, &
+                        Cm_smagorinsky, resuspension_coeff, resuspension_threshold, roughness_height
   use mod_output, only: init_output
   implicit none
   private
@@ -55,7 +57,10 @@ contains
     !---------------------------------------------
     ! Namelists
     !---------------------------------------------
-    namelist /params/ do_diffusion, do_velocity, do_biofouling, run_3d, advection_method, diffusion_hor_const, diffusion_vert_const, Cm_smagorinsky, resuspension_coeff, resuspension_threshold, roughness_height
+    namelist /params/ do_diffusion, do_velocity, do_biofouling, run_3d, &
+      advection_method, g, k_b, kin_visc_default, sw_rho_default, &
+      diffusion_hor_const, diffusion_vert_const, Cm_smagorinsky, &
+      resuspension_coeff, resuspension_threshold, roughness_height
     namelist /domain_vars/ TOPOFILE, bathyvarname, lonvarname, latvarname, nx, ny
     namelist /particle_vars/ inputstep, particle_init_method, coordfile, max_age, kill_beached, kill_boundary
     namelist /time_vars/ run_start, run_end, dt
@@ -84,6 +89,10 @@ contains
     FMT3, var2val(do_biofouling)
     FMT3, var2val(run_3d)
     FMT3, var2val(advection_method)
+    FMT3, var2val(g)
+    FMT3, var2val(k_b)
+    FMT3, var2val(kin_visc_default)
+    FMT3, var2val(sw_rho_default)
     FMT3, var2val(diffusion_hor_const)
     FMT3, var2val(diffusion_vert_const)
     FMT3, var2val(Cm_smagorinsky)
@@ -179,7 +188,6 @@ contains
     character(len=LEN_CHAR_L)              :: filename
     character(len=LEN_CHAR_S), allocatable :: dimnames(:)
     real(rk)                               :: real_var
-    ! integer(rk)                            :: field_count = 0, field_mem
     integer                                :: ndim      ! The (default) number of dimensions for the fieldset
     integer, allocatable                   :: dim_idx(:) ! The default dimensions for the fieldset
 
@@ -199,10 +207,6 @@ contains
       end if
     end if
 
-    ! dimnames = [character(LEN_CHAR_S) :: trim(xdimname), trim(ydimname), trim(zdimname)]
-
-    ! field_mem = (nx * ny * nlevels * 2) * sizeof(real_var)
-    ! FMT2, "Allocating fields of size (nx, ny, nz): (", nx, ", ", ny, ", ", nlevels, ")", field_mem, " bytes per field"
     if (has_subdomains) then
       fieldset = t_fieldset(path=GETMPATH, &
                             domain=domain, &
@@ -217,9 +221,6 @@ contains
                             start=run_start_dt, dt=dt, &
                             file_prefix=trim(file_prefix), file_suffix=trim(file_suffix))
     end if
-
-    ! call fieldset%set_start_time(run_start_dt)
-    ! call fieldset%set_simulation_timestep(dt)
 
     select case (has_subdomains)
     case (.true.)
@@ -245,7 +246,6 @@ contains
     else
       call throw_error("initialise :: init_fieldset", "Variable for V velocity does not exist: "//trim(vvarname))
     end if
-    ! ! field_count = field_count + 2
     !---------------------------------------------
     ! Fields for v. velocity
     if (run_3d) then
@@ -267,12 +267,9 @@ contains
         call throw_error("initialise :: init_fieldset", "Variable for Z axis does not exist: "//trim(zaxvarname))
       end if
 
-      ! ! field_count = field_count + 2
-
       if (nc_var_exists(trim(filename), trim(elevvarname))) then
         call fieldset%add_field("ELEV", elevvarname)
         ! TODO: set_elev for faster lookup
-        ! ! field_count = field_count + 1
       end if
     end if
     !---------------------------------------------
@@ -281,7 +278,6 @@ contains
       ! Field for density
       if (nc_var_exists(trim(filename), trim(rhovarname))) then
         call fieldset%add_field("RHO", rhovarname)
-        ! ! field_count = field_count + 1
         density_method = RHO_VARIABLE
       else
         call throw_warning("initialise :: init_fieldset", "Could not find density ('"//trim(rhovarname)//"') in "//trim(filename))
@@ -289,7 +285,6 @@ contains
             nc_var_exists(trim(filename), trim(saltvarname))) then
           call fieldset%add_field("TEMP", tempvarname)
           call fieldset%add_field("SALT", saltvarname)
-          ! ! field_count = field_count + 2
           density_method = RHO_CALC
         else
           call throw_warning("initialise :: init_fieldset", "Could not find temperature or salinity ('" &
@@ -303,18 +298,15 @@ contains
       if (nc_var_exists(trim(filename), trim(viscvarname))) then
         call fieldset%add_field("VISC", viscvarname)
         viscosity_method = VISC_VARIABLE
-        ! ! field_count = field_count + 1
       else
        call throw_warning("initialise :: init_fieldset", "Could not find viscosity ('"//trim(viscvarname)//"') in "//trim(filename))
         if (nc_var_exists(trim(filename), trim(tempvarname)) .and. &
             nc_var_exists(trim(filename), trim(saltvarname))) then
           if (.not. fieldset%has_field("TEMP")) then
             call fieldset%add_field("TEMP", tempvarname)
-            ! ! field_count = field_count + 1
           end if
           if (.not. fieldset%has_field("SALT")) then
             call fieldset%add_field("SALT", saltvarname)
-            ! ! field_count = field_count + 1
           end if
           viscosity_method = VISC_CALC
         else
@@ -329,7 +321,6 @@ contains
       if ((nc_var_exists(trim(filename), trim(taubxvarname)) .and. (nc_var_exists(trim(filename), trim(taubyvarname))))) then
         call fieldset%add_field("TAUBX", taubxvarname)
         call fieldset%add_field("TAUBY", taubyvarname)
-        ! ! field_count = field_count + 2
         has_bottom_stress = .true.
       else
         call throw_warning("initialise :: init_fieldset", "Could not find bottom stress ('"//trim(taubxvarname)//"'/'"//trim(taubyvarname)//"') in "//trim(filename))

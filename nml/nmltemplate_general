@@ -23,6 +23,10 @@
 !                                  0 - no advection
 !                                  1 - explicit Euler
 !                                  2 - RK2
+! g                      - [float] Gravitational acceleration [m/s^2]
+! k_b                    - [float] Boltzmann constant [J/K]
+! kin_visc_default       - [float] Kinematic viscosity [m^2/s]
+! sw_rho_default         - [float] Density of sea water [kg/m^3]
 ! diffusion_hor_const    - [float] Horisontal diffusion constant
 ! diffusion_vert_const   - [float] Vertical diffusion constant
 ! Cm_smagorinsky         - [float] Empirical parameter in Smagorinsky 
@@ -36,6 +40,10 @@
   do_biofouling = .false.
   run_3d = .false.
   advection_method = 2
+  g = 9.81
+  k_b = 1.380649e-23
+  kin_visc_default = 1.1512e-6
+  sw_rho_default = 1025.0
   diffusion_hor_const = 0.01
   diffusion_vert_const = 0.0001
   Cm_smagorinsky = 0.2
@@ -106,6 +114,9 @@
 ! file_prefix    - [char] Before processor number
 ! file_suffix    - [char] After processor number
 ! nlevels        - [int]  Number of vertical levels
+! xdimname       - [char] Name of x-dimension in GETM data
+! ydimname       - [char] Name of y-dimension in GETM data
+! zdimname       - [char] Name of z-dimension in GETM data
 ! uvarname       - [char] Name of current x-component variable in GETM data
 ! vvarname       - [char] Name of current y-component variable in GETM data
 ! wvarname       - [char] Name of current z-component variable in GETM data
