@@ -12,14 +12,14 @@ echo "Setting up the run..."
 echo "===================="
 
 cd data
-python3 make_eddy.py
+python3 make_eddy_2d.py
 python3 make_init.py
 cd ..
 
 #======================================================================
 # RUNNING THE MODEL
 #======================================================================
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=8
 #==================================
 # Namelist variables
 export runid="eddy"
@@ -37,7 +37,7 @@ export topofile="${PWD}/data/eddy_topo.nc"
 # Hydrodynamic data variables
 export xdimname="lon"
 export ydimname="lat"
-export zdimname="level"
+export zdimname=""
 export lonvarname="lon"
 export latvarname="lat"
 export uvarname="u"
@@ -98,7 +98,7 @@ OUT_BASE_DIR="${RUN_DIR}/out"
 #--------------------
 # Entire simulation period
 sim_start="2018-01-01 00:00:00"
-sim_end="2018-01-01 16:20:00"
+sim_end="2018-01-07 22:20:00"
 #--------------------
 echo "===================="
 echo "Running model:"

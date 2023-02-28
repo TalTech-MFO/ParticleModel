@@ -1,6 +1,6 @@
 #!/bin/bash
 #==================================
-export OMP_NUM_THREADS=20
+export OMP_NUM_THREADS=8
 #==================================
 # Namelist variables
 export runid="Tagus_3d"
@@ -13,7 +13,7 @@ export dry_run=False
 
 # Hydrodynamic data
 export getmpath="${PWD}/data/hydro"
-export topofile="${PWD}/data/topo/topo.nc"
+export topofile="${PWD}/data/topo/topo.cdo.nc"
 
 # Hydrodynamic data variables
 export xdimname="lon"
@@ -34,16 +34,19 @@ export has_subdomains=False
 export zax_style=0
 export zax_direction=-1
 
+# Parameters
+export sw_rho_default=1035.
+
 # Advetion + buoyancy
 export do_velocity=True
 
 # Diffusion
 export do_diffusion=True
-export cm_smagorinsky=0.3
+export cm_smagorinsky=0.2
 
 # Resuspension
-export resuspension_coeff=0.05
-export resuspension_threshold=0.148
+export resuspension_coeff=0.5
+export resuspension_threshold=0.0048
 
 # Biofouling
 export do_biofouling=False
@@ -188,7 +191,7 @@ clear
 mkdir -p ${OUT_BASE_DIR}/counts
 for d in $( ls -d ${OUT_BASE_DIR}/2* ); do
     echo "Calculating counts in $d"
-    python3 calculate_counts.py -np 8 -s $d/${runid}.out.nc -o ${OUT_BASE_DIR}/counts/counts.$(basename $d).nc --topo-file ${topofile} -dx 100
+    python3 calculate_counts.py -O -np 8 -s $d/${runid}.out.nc -o ${OUT_BASE_DIR}/counts/counts.$(basename $d).nc --topo-file ${topofile} -dx 500
 done
 mkdir -p ${OUT_BASE_DIR}/figs
 python3 plot_counts.py -s ${OUT_BASE_DIR}/counts/counts.*.nc -o ${OUT_BASE_DIR}/figs
