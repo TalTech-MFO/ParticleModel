@@ -1,14 +1,15 @@
 # ParticleModel
 
+
 ## TODO
 
-- [x] Resuspension: u -> u\* (bottom friction velocity)
-- [x] Resuspension tests
-- [x] Biofouling tests
-- [x] Restart tests
-- [x] Run scripts
-- [ ] Test cases
-- [ ] Install/run instructions
+- [ ] Restart tests (**needs update**)
+- [ ] Run scripts (**needs update**)
+- [ ] Test cases 
+- [x] Install/run instructions (sort of done... Documentation is needed!)
+- [ ] Update namelist 
+- [ ] Simulation class
+- [ ] Simulation variables class
 
 More to-do in TODO.txt
 
