@@ -1,4 +1,3 @@
-#warning "This module has not been tested"
 #include "cppdefs.h"
 #include "file.h"
 module mod_biofouling

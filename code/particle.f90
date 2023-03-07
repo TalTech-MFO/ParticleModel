@@ -550,8 +550,8 @@ contains
       end if
     end do
 
-    x1 = x0 + fieldset%domain%dx * dir; 
-    y1 = y0 + fieldset%domain%dy * djr; 
+    x1 = x0 + fieldset%domain%dx%get(i1,j1) * dir; 
+    y1 = y0 + fieldset%domain%dy%get(i1,j1) * djr; 
     call fieldset%domain%xy2lonlat(x1, y1, this%lon1, this%lat1)
 
     this%i1 = i1; 

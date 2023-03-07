@@ -8,7 +8,6 @@ module mod_vertical_motion
   use mod_precdefs
   use mod_params
   use time_vars, only: dt
-  ! use field_vars, only: density_method, viscosity_method
   use mod_physics, only: seawater_density, seawater_viscosity, bottom_friction_velocity
   use mod_particle, only: t_particle
 
@@ -29,17 +28,13 @@ contains
     real(rk), intent(in)            :: time
     real(rk)                        :: vert_vel
 
-    dbghead(vertical_motion :: vertical_velocity)
-
     vert_vel = buoyancy(p, fieldset, time, p%delta_rho, p%kin_visc) + resuspension(p, fieldset, time, p%u_star)
     debug(vert_vel)
 
     p%depth1 = p%depth1 + (vert_vel * dt)
-    ! p%w1 = p%w1 + vert_vel
     p%vel_vertical = vert_vel
     call fieldset%search_indices(t=time, x=p%lon1, y=p%lat1, z=p%depth1, k=p%k1, kr=p%kr1)
 
-    dbgtail(vertical_motion :: vertical_velocity)
     return
   end subroutine vertical_velocity
   !===========================================

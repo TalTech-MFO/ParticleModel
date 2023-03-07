@@ -5,3 +5,5 @@
 #define START_OMP_DO !just a comment in case this is followed by more parameters
 #define END_OMP_DO 
 #endif
+
+#define CHUNKSIZE_OMP 1000
