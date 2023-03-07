@@ -1,16 +1,5 @@
 # ParticleModel
 
-## TODO
-
-- [x] Resuspension: u -> u\* (bottom friction velocity)
-- [x] Resuspension tests
-- [x] Biofouling tests
-- [x] Restart tests
-- [x] Run scripts
-- [ ] Test cases
-- [ ] Install/run instructions
-
-More to-do in TODO.txt
 
 ## Installing
 
@@ -41,3 +30,7 @@ Before running `make`, have a look at the `Makefile` and `include/output.h` file
 
 - Comment/uncomment compiler flags in `Makefile` to disable/enable e.g., openMP, debug features or select the biofouling model (only "simple" implemented at the moment).
 - Select output variables by commenting/uncommenting lines in `include/output.h`. Particle position will always be written.
+
+## TODO
+
+See TODO.txt for known issues/ideas for further development. 
