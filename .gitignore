@@ -13,6 +13,7 @@ code/.vscode
 
 # Test cases
 test_cases/CMEMS*hires
+test_cases/gof_250m_3d
 
 bin
 code/*.mod
@@ -20,3 +21,6 @@ code/mod
 code/obj
 sync_from_base.sh
 copy_test_cases.sh
+check_last_log.sh
+sync_to_base.sh
+sync.log
