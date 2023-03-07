@@ -136,8 +136,8 @@ contains
       v1h = fieldset%get("V", time, i1, jh); 
     end if
 
-    dx = fieldset%domain%dx
-    dy = fieldset%domain%dy
+    dx = fieldset%domain%dx%get(i,j)
+    dy = fieldset%domain%dy%get(i,j)
 
     dudx = (u1h - u0h) / dx; 
     dudy = (uh1 - uh0) / dy; 
@@ -152,7 +152,6 @@ contains
     !---------------------------------------------
     ! Calculate the bottom stress using a logarithmic profile
     ! Returns taubx/rho, tauby/rho (stress divided by density)
-    !! Still debugging this
     !---------------------------------------------
     type(t_fieldset), intent(in)  :: fieldset
     real(rk), intent(in)          :: time
@@ -232,7 +231,6 @@ contains
     ! Reference:  N.P. Fofonoff and R.C. Millard Jr.,1983,
     !             Unesco technical papers in marine science no. 44.
     !---------------------------------------------
-
     real(rk), intent(in) :: T, S, Z
     real(rk) :: SAu, CTu, Zu, deltaS
     real(rk) :: R000, R100, R200, R300, R400, &

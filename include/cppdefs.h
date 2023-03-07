@@ -60,7 +60,7 @@
 ! Some shortcuts
 #define PROC0 "/"//trim(file_prefix)//"0000"//trim(file_suffix)//".nc"
 ! GETM usually fills with 9999., could be different in other models...
-#define MISSING_VAL -99.0d0
+! #define MISSING_VAL -9999._rk
 #define ZERO 0.0_rk
 #define HALF 0.5_rk
 #define ONE 1.0_rk

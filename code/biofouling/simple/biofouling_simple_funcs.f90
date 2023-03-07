@@ -1,4 +1,3 @@
-#warning "This module has not been tested"
 submodule(mod_biofouling) mod_biofouling_funcs
   !----------------------------------------------------------------
   !----------------------------------------------------------------

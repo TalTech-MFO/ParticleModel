@@ -134,6 +134,7 @@ contains
     character(len=LEN_CHAR_L)          :: init_path
 
     f%PATH = path
+    f%domain => domain
 
     if (present(pmap)) then
       f%PMAPFILE = pmap
@@ -154,7 +155,6 @@ contains
 
     call f%init_time(init_path, start, dt)
 
-    f%domain => domain
     call f%init_dimensions(dimnames)
 
     return
@@ -180,8 +180,6 @@ contains
     integer :: idim
     integer :: ndim_check
 
-    dbghead(fieldset :: init_dimensions)
-
     FMT1, "======== Init dimensions ========"
 
     if (.not. associated(this%domain)) call throw_error("fieldset :: init_dimensions", "Domain not associated")
@@ -201,6 +199,7 @@ contains
     FMT2, "Checking dimensions in file: "//trim(check_path)
     call nc_get_file_dims(check_path, ndims=ndim_check, dimnames=dimname_check, dimlens=dimlen_check)
     FMT2, "Dimensions: ", ndim_check
+    if (ndim_check < 2) call throw_error("fieldset :: init_dimensions", "Dataset should have at least 2 dimensions")
     do idim = 1, ndim_check
       FMT3, trim(dimname_check(idim))//"(", dimlen_check(idim), ")"
     end do
@@ -217,12 +216,16 @@ contains
       end if
     end do
 
+    if (this%has_subdomains) then
+      ! TODO: This is a dirty bug fix, because the subdomain dimensions are not
+      !       the same as the whole domain. This should be fixed in the future.
+      this%dims(1) = this%domain%nx
+      this%dims(2) = this%domain%ny
+    end if
     this%nx = this%dims(1)
     this%ny = this%dims(2)
     if (this%has_vertical) then
       this%nz = this%dims(3)
-      ! else
-      !   this%nz = 1
     end if
 
     ! Some sanity checks
@@ -238,7 +241,6 @@ contains
       FMT3, trim(dimnames(3))//"(", this%nz, ")"
     end if
 
-    dbgtail(fieldset :: init_dimensions)
     return
   end subroutine init_dimensions
   !===========================================
@@ -290,13 +292,15 @@ contains
 
     FMT1, "======== Init subdomains ========"
 
+    if (.not. associated(this%domain)) call throw_error("fieldset :: init_subdomain", "Domain not associated")
+
     open (PROCFILE, file=trim(this%PMAPFILE), action='read', iostat=ierr)
     if (ierr .ne. 0) call throw_error("fieldset :: init_subdomain", "Failed to open "//trim(this%PMAPFILE), ierr)
     read (PROCFILE, *) this%nproc
     allocate (this%pmap(this%nproc, 2))
     read (PROCFILE, *) this%nxp, this%nyp, imax, jmax
-    if ((imax .ne. this%nx) .or. (jmax .ne. this%ny)) then
-      ERROR, "(nx = ", this%nx, "imax = ", imax, "ny = ", this%ny, "jmax = ", jmax, ")"
+    if ((imax .ne. this%domain%nx) .or. (jmax .ne. this%domain%ny)) then
+      ERROR, "(nx = ", this%domain%nx, "imax = ", imax, "ny = ", this%domain%ny, "jmax = ", jmax, ")"
       call throw_error("fieldset :: init_subdomain", "Given domain size does not match one in parallel setup file!")
     else
       FMT2, "Number of subdomains: ", this%nproc, " (", this%nxp, " x ", this%nyp, ")"
@@ -400,24 +404,18 @@ contains
 
   end subroutine init_dirlist
   !===========================================
-  subroutine add_field(this, field_name, nc_varname) !, ndim, dim_idx, static)
+  subroutine add_field(this, field_name, nc_varname)
     class(t_fieldset), intent(inout)       :: this
     character(*), intent(in)               :: field_name, nc_varname
-    ! integer, intent(in)                    :: ndim          ! Number of dimensions
-    ! integer, intent(in)                    :: dim_idx(ndim) ! Dimension indices for this field
-    ! logical, optional, intent(in)          :: static        ! Is this field static (i.e. not time-dependent)?
     integer                                :: fld_ndim
     integer                                :: fld_time_idx
     logical                                :: fld_static
     character(len=LEN_CHAR_S), allocatable :: fld_dimnames(:)
     integer, allocatable                   :: fld_dimlen(:)
     integer                                :: idim
-    ! integer                                :: ndim_check
     character(len=LEN_CHAR_L)              :: check_path
     real(rk)                               :: fill_value
     character(len=LEN_CHAR_L)              :: errmsg
-
-    dbghead(fieldset :: add_field)
 
     fld_static = .true.
     fld_time_idx = -1
@@ -431,7 +429,11 @@ contains
 
     if (.not. nc_var_exists(check_path, nc_varname)) call throw_error("fieldset :: add_field", "Variable "//trim(nc_varname)//" does not exist in "//trim(check_path))
 
-    call nc_get_var_dims(check_path, nc_varname, ndims=fld_ndim, dimnames=fld_dimnames, dimlens=fld_dimlen)
+    if (this%has_subdomains) then
+      call nc_get_var_dims(check_path, nc_varname, ndims=fld_ndim, dimnames=fld_dimnames)
+    else
+      call nc_get_var_dims(check_path, nc_varname, ndims=fld_ndim, dimnames=fld_dimnames, dimlens=fld_dimlen)
+    end if
 
     if (any(fld_dimnames == "time")) then
       fld_static = .false.
@@ -450,10 +452,17 @@ contains
       fld_ndim = fld_ndim - 1 ! Remove the time dimension
     end if
 
+    if (this%has_subdomains) then
+      allocate (fld_dimlen(fld_ndim))
+      do idim = 1, fld_ndim
+        fld_dimlen(idim) = this%dims(idim)
+      end do
+    end if
+
     ! Search for _FillValue attribute
     if (.not. nc_get_var_fillvalue(check_path, nc_varname, fill_value)) then
       call throw_warning("fieldset :: add_field", "No _FillValue attribute found for variable "//trim(nc_varname)//" in "//trim(check_path)//". Using default.")
-      fill_value = MISSING_VAL
+      fill_value = FILLVALUE_BIG
     end if
 
     ! Add the field to the fieldset
@@ -461,26 +470,17 @@ contains
     case (.true.)
       select case (fld_ndim)
       case (1)
-        DBG, "Adding static 1D field"
-        DBG, "n = ", fld_dimlen(1)
         call this%fields%add_node(field_name, &
                                   t_field_static(n=fld_dimlen(1), &
                                                  name=nc_varname, &
                                                  fill_value=fill_value))
       case (2)
-        DBG, "Adding static 2D field"
-        DBG, "n1 = ", fld_dimlen(1)
-        DBG, "n2 = ", fld_dimlen(2)
         call this%fields%add_node(field_name, &
                                   t_field_static(n1=fld_dimlen(1), &
                                                  n2=fld_dimlen(2), &
                                                  name=nc_varname, &
                                                  fill_value=fill_value))
       case (3)
-        DBG, "Adding static 3D field"
-        DBG, "n1 = ", fld_dimlen(1)
-        DBG, "n2 = ", fld_dimlen(2)
-        DBG, "n3 = ", fld_dimlen(3)
         call this%fields%add_node(field_name, &
                                   t_field_static(n1=fld_dimlen(1), &
                                                  n2=fld_dimlen(2), &
@@ -491,17 +491,12 @@ contains
     case (.false.)
       select case (fld_ndim)
       case (1)
-        DBG, "Adding dynamic 1D field"
-        DBG, "n = ", fld_dimlen(1)
         call this%fields%add_node(field_name, &
                                   t_field_dynamic(n=fld_dimlen(1), &
                                                   timestep=this%nc_timestep, &
                                                   name=nc_varname, &
                                                   fill_value=fill_value))
       case (2)
-        DBG, "Adding dynamic 2D field"
-        DBG, "n1 = ", fld_dimlen(1)
-        DBG, "n2 = ", fld_dimlen(2)
         call this%fields%add_node(field_name, &
                                   t_field_dynamic(n1=fld_dimlen(1), &
                                                   n2=fld_dimlen(2), &
@@ -509,10 +504,6 @@ contains
                                                   name=nc_varname, &
                                                   fill_value=fill_value))
       case (3)
-        DBG, "Adding dynamic 3D field"
-        DBG, "n1 = ", fld_dimlen(1)
-        DBG, "n2 = ", fld_dimlen(2)
-        DBG, "n3 = ", fld_dimlen(3)
         call this%fields%add_node(field_name, &
                                   t_field_dynamic(n1=fld_dimlen(1), &
                                                   n2=fld_dimlen(2), &
@@ -599,34 +590,25 @@ contains
     real(rk), optional, intent(in)  :: k
     class(t_variable), pointer :: p_field
 
-    dbghead(fieldset :: get_value_key_real_idx)
-    debug(field_name); debug(t); debug(i); debug(j); 
-    if (present(k)) then
-      debug(k)
-    end if
-
     call this%fields%get_item(field_name, p_field)
 
     select type (p_field)
     type is (t_field_dynamic_2d)
-      call p_field%get(t=t, x=i, y=j, res=res)
+      res = p_field%get(t=t, x=i, y=j)
     type is (t_field_dynamic_3d)
       if (.not. present(k)) then
         if (this%nz == 1) then
-          call p_field%get(t=t, x=i, y=j, z=ONE, res=res)
+          res = p_field%get(t=t, x=i, y=j, z=ONE)
         else
           call throw_error("fieldset :: get_value_key_real_idx", "k index is missing for 3D field")
         end if
       else
-        call p_field%get(t=t, x=i, y=j, z=k, res=res)
+        res = p_field%get(t=t, x=i, y=j, z=k)
       end if
     class default
       call throw_error("fieldset :: get_value_key_real_idx", "The field must be dynamic 2D or 3D field")
     end select
 
-    debug(res)
-
-    dbgtail(fieldset :: get_value_key_real_idx)
     return
   end function get_value_key_real_idx
   !===========================================
@@ -642,16 +624,16 @@ contains
 
     select type (p_field)
     type is (t_field_dynamic_2d)
-      call p_field%get(t=t, i=i, j=j, res=res)
+      res = p_field%get(t=t, i=i, j=j)
     type is (t_field_dynamic_3d)
       if (.not. present(k)) then
         if (this%nz == 1) then
-          call p_field%get(t=t, i=i, j=j, k=1, res=res)
+          res = p_field%get(t=t, i=i, j=j, k=1)
         else
           call throw_error("fieldset :: get_value_key_int_idx", "k index is missing for 3D field")
         end if
       else
-        call p_field%get(t=t, i=i, j=j, k=k, res=res)
+        res = p_field%get(t=t, i=i, j=j, k=k)
       end if
     class default
       call throw_error("fieldset :: get_value_key_int_idx", "The field must be dynamic 2D or 3D field")
@@ -671,16 +653,16 @@ contains
 
     select type (p_field)
     type is (t_field_dynamic_2d)
-      call p_field%get(t=t, x=i, y=j, res=res)
+      res = p_field%get(t=t, x=i, y=j)
     type is (t_field_dynamic_3d)
       if (.not. present(k)) then
         if (this%nz == 1) then
-          call p_field%get(t=t, x=i, y=j, z=ONE, res=res)
+          res = p_field%get(t=t, x=i, y=j, z=ONE)
         else
           call throw_error("fieldset :: get_value_idx_real_idx", "k index is missing for 3D field")
         end if
       else
-        call p_field%get(t=t, x=i, y=j, z=k, res=res)
+        res = p_field%get(t=t, x=i, y=j, z=k)
       end if
     class default
       call throw_error("fieldset :: get_value_idx_real_idx", "The field must be dynamic 2D or 3D field")
@@ -701,16 +683,16 @@ contains
 
     select type (p_field)
     type is (t_field_dynamic_2d)
-      call p_field%get(t=t, i=i, j=j, res=res)
+      res = p_field%get(t=t, i=i, j=j)
     type is (t_field_dynamic_3d)
       if (.not. present(k)) then
         if (this%nz == 1) then
-          call p_field%get(t=t, i=i, j=j, k=1, res=res)
+          res = p_field%get(t=t, i=i, j=j, k=1)
         else
           call throw_error("fieldset :: get_value_idx_int_idx", "k index is missing for 3D field")
         end if
       else
-        call p_field%get(t=t, i=i, j=j, k=k, res=res)
+        res = p_field%get(t=t, i=i, j=j, k=k)
       end if
     class default
       call throw_error("fieldset :: get_value_idx_int_idx", "The field must be dynamic 2D or 3D field")
@@ -778,13 +760,7 @@ contains
     integer                         :: ik
     real(rk)                        :: ikr
 
-    dbghead(fieldset :: get_indices_vertical)
-
-    debug(t); debug(z); debug(i); debug(j)
-
     dep = this%domain%get_bathymetry(i, j)
-
-    debug(dep)
 
     ! If the bathymetry value is negative, that means that this (i,j) point is on land
     ! and we set the index to the top of the water column and return
@@ -794,7 +770,6 @@ contains
 #ifdef DEBUG
       call throw_warning("fieldset :: get_indices_vertical", "Particle on ground")
 #endif
-      dbgtail(fieldset :: get_indices_vertical)
       return
     end if
 
@@ -816,7 +791,6 @@ contains
 #ifdef DEBUG
       call throw_warning("fieldset :: get_indices_vertical", "Out of bounds (z > top)") ! Better error message
 #endif
-      dbgtail(fieldset :: get_indices_vertical)
       return
     end if
 
@@ -826,18 +800,14 @@ contains
 #ifdef DEBUG
       call throw_warning("fieldset :: get_indices_vertical", "Out of bounds (z < bottom)") ! Better error message
 #endif
-      dbgtail(fieldset :: get_indices_vertical)
       return
     end if
 
     ! Because of the previous checks, we know that the particle is in the water column
     ! and actually in the range of the Z axis. We can now find the indices.
     ik = minloc(abs(zax - z), dim=1)
-    debug(ik)
     if (zax(ik) > z) then
-      DBG, "zax(ik) > z"
       ik = ik - 1
-      debug(ik)
     end if
     dz = (zax(ik + 1) - zax(ik))
     do while (dz <= ZERO) ! It may happen that there are equal values in the Z axis
@@ -845,7 +815,6 @@ contains
       dz = (zax(ik + 1) - zax(ik))
     end do
     ikr = ik + (z - zax(ik)) / dz
-    debug(ikr)
 
     if (present(k)) then
       k = ik
@@ -854,21 +823,20 @@ contains
       kr = ikr
     end if
 
-    dbgtail(fieldset :: get_indices_vertical)
     return
   end subroutine get_indices_vertical
   !===========================================
   function get_zax_regular(this) result(res)
     class(t_fieldset), intent(in) :: this
     class(t_variable), pointer    :: p_field
-    real(rk)                      :: res(this%nz)
+    real(rk), allocatable         :: res(:)
 
     if (this%zax_style /= STATIC_DEPTH_VALUES) call throw_error("fieldset :: get_zax_regular", "Z axis is not static")
 
     call this%fields%get_item(this%zax_idx, p_field)
     select type (p_field)
     type is (t_field_static_1d)
-      call p_field%get(res)
+      res = p_field%get()
       res = res * real(this%zax_dir, rk)
     class default
       call throw_error("fieldset :: get_zax_regular", "Z axis is not a static 1D field")
@@ -882,7 +850,6 @@ contains
     real(rk), intent(in)             :: t
     integer, intent(in)              :: i, j
     class(t_variable), pointer       :: p_field
-    type(t_field_static_1d), pointer :: zax_slice
     real(rk)                         :: arr_zax(this%nz)
     real(rk)                         :: res(this%nz)
     integer                          :: ik
@@ -890,11 +857,10 @@ contains
     call this%fields%get_item(this%zax_idx, p_field)
     select type (p_field)
     type is (t_field_dynamic_3d)
-      call p_field%slice(slice_dim=3, t=t, idx_other=[i, j], res=zax_slice)
+      call p_field%slice(slice_dim=3, t=t, idx_other=[i, j], res=arr_zax)
     class default
       call throw_error("fieldset :: get_zax_adaptive", "Z axis is not a dynamic 3D field")
     end select
-    call zax_slice%get(arr_zax)
 
     select case (this%zax_style)
     case (DEPTH_VALUES)
@@ -1099,7 +1065,6 @@ contains
     class(t_fieldset), intent(inout) :: this
     character(*), intent(in)         :: u_comp_name
 
-    ! this%u_idx = this%fields%node_loc(trim(u_comp_name))
     if (.not. this%has_field(trim(u_comp_name))) call throw_error("fieldset :: set_u_component", "Did not find "//trim(u_comp_name)//" in fieldset")
     call this%init_u_mask()
 
@@ -1109,7 +1074,6 @@ contains
     class(t_fieldset), intent(inout) :: this
     character(*), intent(in)         :: v_comp_name
 
-    ! this%v_idx = this%fields%node_loc(trim(v_comp_name))
     if (.not. this%has_field(trim(v_comp_name))) call throw_error("fieldset :: set_v_component", "Did not find "//trim(v_comp_name)//" in fieldset")
     call this%init_v_mask()
 
@@ -1219,7 +1183,6 @@ contains
     integer                          :: i_field
     logical                          :: ign_chk, ud
 
-    dbghead(fieldset :: update)
 
     if (present(ignore_check)) then
       ign_chk = ignore_check
@@ -1229,7 +1192,6 @@ contains
 
     ! Check if it's even time to read
     if ((.not. ign_chk) .and. (date < this%next_read_dt)) then
-      dbgtail(update)
       return
     end if
 
@@ -1280,7 +1242,6 @@ contains
       call this%date_t2%update(this%nc_timestep)
     end if
 
-    dbgtail(fieldset :: update)
     return
   end subroutine update
   !===========================================
@@ -1316,6 +1277,8 @@ contains
 
     t_nan = .false.
     b_nan = .false.
+    n_dims = 0
+    missing_value = FILLVALUE_BIG
 
     if (field_idx == this%u_idx) then
       c_field = "u"
@@ -1448,6 +1411,8 @@ contains
 
     t_nan = .false.
     b_nan = .false.
+    n_dims = 0
+    missing_value = FILLVALUE_BIG
 
     if (field_idx == this%u_idx) then
       c_field = "u"
@@ -1494,7 +1459,6 @@ contains
 
       ioff = this%pmap(i_subdom + 1, 1); joff = this%pmap(i_subdom + 1, 2)
       istart = 1 + ioff; jstart = 1 + joff
-      ! count = [this%nxp, this%nyp, this%nz, 1]
       if (ioff .lt. 0) then
         count(1) = this%nxp - abs(ioff)
         istart = 1
@@ -1670,7 +1634,7 @@ contains
       call this%fields%get_item("ELEV", p_field)
       select type (p_field)
       type is (t_field_dynamic_2d)
-        call p_field%get(t, i, j, res=res)
+        res = p_field%get(t, i, j)
       class default
         call throw_error("fieldset :: sealevel", "ELEV is not a dynamic 2D field. I don't know what to do.")
       end select

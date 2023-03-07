@@ -184,6 +184,10 @@ echo "===================="
 echo "All finished!"
 echo "Total time: $((toc-tic)) seconds"
 echo "===================="
+if [ "$dry_run" = True ]; then
+    echo "Dry run finished"
+    exit
+fi
 #======================================================================
 # PLOTTING THE RESULTS
 #======================================================================

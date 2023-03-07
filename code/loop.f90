@@ -94,7 +94,7 @@ contains
 
       !---------------------------------------------
       ! Start particle loop
-      START_OMP_DO shared(particles, fieldset, domain)
+      START_OMP_DO shared(particles, fieldset, domain) schedule(guided)
       do ipart = 1, runparts
         DBG, LINE
         DBG, "Particle nr.", ipart

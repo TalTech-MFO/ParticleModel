@@ -21,8 +21,8 @@ module nc_manager
             nc_add_variable, nc_add_attr, nc_write
 
   !---------------------------------------------
-  real(rk), parameter :: FILLVALUE_TOPO = -10.0d0
-  real(rk), parameter :: FILLVALUE_BIG = -9999.0d0
+  real(rk), parameter :: FILLVALUE_TOPO = -10.0_rk
+  real(rk), parameter :: FILLVALUE_BIG = nf90_fill_float
   !---------------------------------------------
   ! Overload the writing subroutines
   interface nc_write

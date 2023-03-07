@@ -24,6 +24,10 @@ module mod_field
     procedure :: print => print_info_static
     procedure, public :: gradient => gradient_static
     procedure, public :: slice => slice_static
+    procedure         :: min_static, max_static
+    generic, public   :: min => min_static
+    generic, public   :: max => max_static
+
   end type t_field_static
   !---------------------------------------------
   type, extends(t_field_static) :: t_field_static_1d
@@ -37,6 +41,7 @@ module mod_field
     procedure, public :: set => set_value_1d_static
     procedure :: get_value_whole_1d_static, get_value_xy_1d_static, get_value_idx_1d_static
     generic, public :: get => get_value_whole_1d_static, get_value_xy_1d_static, get_value_idx_1d_static
+    final :: dtor_field_static_1d
   end type t_field_static_1d
   !---------------------------------------------
   type, extends(t_field_static) :: t_field_static_2d
@@ -50,6 +55,7 @@ module mod_field
     procedure, public :: set => set_value_2d_static
     procedure :: get_value_whole_2d_static, get_value_xy_2d_static, get_value_idx_2d_static
     generic, public :: get => get_value_whole_2d_static, get_value_xy_2d_static, get_value_idx_2d_static
+    final :: dtor_field_static_2d
   end type t_field_static_2d
   !---------------------------------------------
   type, extends(t_field_static) :: t_field_static_3d
@@ -66,6 +72,7 @@ module mod_field
     generic, public :: get => get_value_whole_3d_static, get_value_xy_3d_static, get_value_idx_3d_static
     procedure, public :: top_is_nan => top_is_nan_static
     procedure, public :: bottom_is_nan => bottom_is_nan_static
+    final :: dtor_field_static_3d
   end type t_field_static_3d
   !---------------------------------------------
   interface t_field_static
@@ -83,8 +90,8 @@ module mod_field
     private
     procedure, public :: init => init_dynamic
     procedure, public :: set_timestep, get_timestep
-    procedure :: time_interpolation_field, time_interpolation_scalar, time_interpolation_1d, time_interpolation_2d, time_interpolation_3d
-    generic :: time_interpolation => time_interpolation_field, time_interpolation_scalar, time_interpolation_1d, time_interpolation_2d, time_interpolation_3d
+    procedure :: time_interpolation_scalar, time_interpolation_1d, time_interpolation_2d, time_interpolation_3d
+    generic :: time_interpolation => time_interpolation_scalar, time_interpolation_1d, time_interpolation_2d, time_interpolation_3d
     procedure :: gradient => gradient_dynamic
     procedure, public :: slice => slice_dynamic
     procedure, public :: swap
@@ -99,6 +106,7 @@ module mod_field
     procedure, public :: set => set_value_1d_dynamic
     procedure :: get_value_xy_1d_dynamic, get_value_idx_1d_dynamic
     generic, public :: get => get_value_xy_1d_dynamic, get_value_idx_1d_dynamic
+    final :: dtor_field_dynamic_1d
   end type t_field_dynamic_1d
   !---------------------------------------------
   type, extends(t_field_dynamic) :: t_field_dynamic_2d
@@ -110,6 +118,7 @@ module mod_field
     procedure, public :: set => set_value_2d_dynamic
     procedure :: get_value_xy_2d_dynamic, get_value_idx_2d_dynamic
     generic, public:: get => get_value_xy_2d_dynamic, get_value_idx_2d_dynamic
+    final :: dtor_field_dynamic_2d
   end type t_field_dynamic_2d
   !---------------------------------------------
   type, extends(t_field_dynamic) :: t_field_dynamic_3d
@@ -124,6 +133,7 @@ module mod_field
     generic, public :: get => get_value_xy_3d_dynamic, get_value_idx_3d_dynamic
     procedure, public :: top_is_nan => top_is_nan_dynamic
     procedure, public :: bottom_is_nan => bottom_is_nan_dynamic
+    final :: dtor_field_dynamic_3d
   end type t_field_dynamic_3d
   !---------------------------------------------
   interface t_field_dynamic
@@ -131,7 +141,8 @@ module mod_field
     module procedure ctor_field_dynamic_2d
     module procedure ctor_field_dynamic_3d
   end interface t_field_dynamic
-
+  !---------------------------------------------
+  integer :: ierr
   !===================================================
 contains
   !===========================================
@@ -206,6 +217,53 @@ contains
     return
   end function ctor_field_dynamic_3d
   !===========================================
+  ! DESTRUCTORS
+  !===========================================
+  subroutine dtor_field_static_1d(this)
+    type(t_field_static_1d), intent(inout) :: this
+
+    if (allocated(this%data)) deallocate (this%data)
+
+  end subroutine dtor_field_static_1d
+  !===========================================
+  subroutine dtor_field_static_2d(this)
+    type(t_field_static_2d), intent(inout) :: this
+
+    if (allocated(this%data)) deallocate (this%data)
+
+  end subroutine dtor_field_static_2d
+  !===========================================
+  subroutine dtor_field_static_3d(this)
+    type(t_field_static_3d), intent(inout) :: this
+
+    if (allocated(this%data)) deallocate (this%data)
+
+  end subroutine dtor_field_static_3d
+  !===========================================
+  subroutine dtor_field_dynamic_1d(this)
+    type(t_field_dynamic_1d), intent(inout) :: this
+
+    if (allocated(this%data_t1)) deallocate (this%data_t1)
+    if (allocated(this%data_t2)) deallocate (this%data_t2)
+
+  end subroutine dtor_field_dynamic_1d
+  !===========================================
+  subroutine dtor_field_dynamic_2d(this)
+    type(t_field_dynamic_2d), intent(inout) :: this
+
+    if (allocated(this%data_t1)) deallocate (this%data_t1)
+    if (allocated(this%data_t2)) deallocate (this%data_t2)
+
+  end subroutine dtor_field_dynamic_2d
+  !===========================================
+  subroutine dtor_field_dynamic_3d(this)
+    type(t_field_dynamic_3d), intent(inout) :: this
+
+    if (allocated(this%data_t1)) deallocate (this%data_t1)
+    if (allocated(this%data_t2)) deallocate (this%data_t2)
+
+  end subroutine dtor_field_dynamic_3d
+  !===========================================
   ! INIT ROUTINES
   !===========================================
   subroutine init_dynamic(this, ndim, sdim, name, units, fill_value)
@@ -215,14 +273,13 @@ contains
     character(len=*), intent(in), optional :: name, units
     real(rk), intent(in), optional :: fill_value
 
-    dbghead(field :: init_dynamic)
-
     select type (this)
     type is (t_field_dynamic_1d)
-      DBG, "TYPE IS 1D DYNAMIC"
       if (ndim /= 1) call throw_error("field :: init_dynamic", "type of "//trim(name)//" is t_field_dynamic_1d but ndim /= 1")
-      allocate (this%data_t1)
-      allocate (this%data_t2)
+      allocate (this%data_t1, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: init_dynamic", "Could not allocate data")
+      allocate (this%data_t2, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: init_dynamic", "Could not allocate data")
       call this%data_t1%init(sdim(1))
       call this%data_t2%init(sdim(1))
 
@@ -242,10 +299,11 @@ contains
       end if
 
     type is (t_field_dynamic_2d)
-      DBG, "TYPE IS 2D DYNAMIC"
       if (ndim /= 2) call throw_error("field :: init_dynamic", "type of "//trim(name)//" is t_field_dynamic_2d but ndim /= 2")
-      allocate (this%data_t1)
-      allocate (this%data_t2)
+      allocate (this%data_t1, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: init_dynamic", "Could not allocate data")
+      allocate (this%data_t2, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: init_dynamic", "Could not allocate data")
       call this%data_t1%init(sdim(1), sdim(2))
       call this%data_t2%init(sdim(1), sdim(2))
 
@@ -266,10 +324,11 @@ contains
       end if
 
     type is (t_field_dynamic_3d)
-      DBG, "TYPE IS 3D DYNAMIC"
       if (ndim /= 3) call throw_error("field :: init_dynamic", "type of "//trim(name)//" is t_field_dynamic_3d but ndim /= 3")
-      allocate (this%data_t1)
-      allocate (this%data_t2)
+      allocate (this%data_t1, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: init_dynamic", "Could not allocate data")
+      allocate (this%data_t2, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: init_dynamic", "Could not allocate data")
       call this%data_t1%init(sdim(1), sdim(2), sdim(3))
       call this%data_t2%init(sdim(1), sdim(2), sdim(3))
 
@@ -305,7 +364,6 @@ contains
       call this%set_missing_value(fill_value)
     end if
 
-    dbgtail(field :: init_dynamic)
     return
   end subroutine init_dynamic
 
@@ -317,7 +375,8 @@ contains
     character(len=*), intent(in), optional :: name, units
     real(rk), intent(in), optional :: fill_value
 
-    allocate (this%data(n))
+    allocate (this%data(n), stat=ierr)
+    if (ierr /= 0) call throw_error("field :: init_1d_static", "Could not allocate data")
     if (present(value)) then
       this%data = value
     else
@@ -345,7 +404,8 @@ contains
     character(len=*), intent(in), optional :: name, units
     real(rk), intent(in), optional :: fill_value
 
-    allocate (this%data(n1, n2))
+    allocate (this%data(n1, n2), stat=ierr)
+    if (ierr /= 0) call throw_error("field :: init_2d_static", "Could not allocate data")
     if (present(value)) then
       this%data = value
     else
@@ -374,29 +434,21 @@ contains
     character(len=*), intent(in), optional :: name, units
     real(rk), intent(in), optional :: fill_value
 
-    dbghead(field :: init_3d_static)
-
-    DBG, "ALLOCATING"
-    allocate (this%data(n1, n2, n3))
-    DBG, "ALLOCATED"
+    allocate (this%data(n1, n2, n3), stat=ierr)
+    if (ierr /= 0) call throw_error("field :: init_3d_static", "Could not allocate data")
     if (present(value)) then
-      DBG, "PRESENT VALUE"
       this%data = value
     else
-      DBG, "NOT PRESENT VALUE"
       this%data = ZERO
     end if
     this%n1 = n1
     this%n2 = n2
     this%n3 = n3
-    DBG, "SET DIM"
     call this%set_dim(3)
     if (present(name)) then
-      DBG, "PRESENT NAME"
       call this%set_name(name)
     end if
     if (present(units)) then
-      DBG, "PRESENT UNITS"
       call this%set_units(units)
     end if
     if (present(fill_value)) then
@@ -407,16 +459,27 @@ contains
     return
   end subroutine init_3d_static
   !===========================================
-  ! Interpolation routines
+  ! INTERPOLATION ROUTINES
   !===========================================
-  real(rk) function interpolate_1d_static(this, x) result(res)
+  real(rk) function interpolate_1d_static(this, x, out_of_bounds) result(res)
     class(t_field_static_1d), intent(in) :: this
     real(rk), intent(in) :: x ! The index to interpolate at
+    logical, intent(out), optional :: out_of_bounds
     real(rk) :: x1, x2
     integer :: i1, i2
 
+    if (present(out_of_bounds)) out_of_bounds = .false.
+
     i1 = floor(x)
+
+    if (i1 >= this%n .or. i1 < 1) then
+      res = ZERO
+      if (present(out_of_bounds)) out_of_bounds = .true.
+      return
+    end if
+
     i2 = i1 + 1
+
     x1 = real(i1, rk)
     x2 = real(i2, rk)
 
@@ -425,54 +488,64 @@ contains
     return
   end function interpolate_1d_static
   !===========================================
-  real(rk) function interpolate_2d_static(this, x, y) result(res)
+  real(rk) function interpolate_2d_static(this, x, y, out_of_bounds) result(res)
     class(t_field_static_2d), intent(in) :: this
     real(rk), intent(in) :: x, y ! The indices to interpolate at
+    logical, intent(out), optional :: out_of_bounds
     real(rk) :: c11, c12, c21, c22
-    integer :: i, j
+    integer :: i1, j1, i2, j2
     real(rk) :: x1, x2, y1, y2
 
-    i = floor(x)
-    j = floor(y)
+    if (present(out_of_bounds)) out_of_bounds = .false.
 
-    x1 = real(i, rk)
-    x2 = real(i + 1, rk)
-    y1 = real(j, rk)
-    y2 = real(j + 1, rk)
+    i1 = floor(x)
+    j1 = floor(y)
 
-    c11 = this%data(i, j)
-    c12 = this%data(i, j + 1)
-    c21 = this%data(i + 1, j)
-    c22 = this%data(i + 1, j + 1)
+    if (i1 >= this%n1 .or. j1 >= this%n2 .or. &
+        i1 < 1 .or. j1 < 1) then
+      res = ZERO
+      if (present(out_of_bounds)) out_of_bounds = .true.
+      return
+    end if
+
+    i2 = i1 + 1
+    j2 = j1 + 1
+
+    x1 = real(i1, rk)
+    x2 = real(i2, rk)
+    y1 = real(j1, rk)
+    y2 = real(j2, rk)
+
+    c11 = this%data(i1, j1)
+    c12 = this%data(i1, j2)
+    c21 = this%data(i2, j1)
+    c22 = this%data(i2, j2)
 
     call bilinearinterp(x1, x1, x2, x2, y1, y2, c11, c12, c21, c22, x, y, res)
 
     return
   end function interpolate_2d_static
   !===========================================
-  real(rk) function interpolate_3d_static(this, x, y, z) result(res)
+  real(rk) function interpolate_3d_static(this, x, y, z, out_of_bounds) result(res)
     class(t_field_static_3d), intent(in) :: this
     real(rk), intent(in) :: x, y, z ! The indices to interpolate at
+    logical, intent(out), optional :: out_of_bounds
     real(rk) :: c111, c121, c211, c221, c112, c122, c212, c222
     integer :: i1, j1, k1, i2, j2, k2
     real(rk) :: x1, x2, y1, y2, z1, z2
     logical :: do_bilin
 
-    dbghead(field :: interpolate_3d_static)
-
-    debug(x); debug(y); debug(z)
-
+    if (present(out_of_bounds)) out_of_bounds = .false.
     do_bilin = .false.
 
-    i1 = floor(x); debug(i1)
-    j1 = floor(y); debug(j1)
-    k1 = floor(z); debug(k1)
+    i1 = floor(x)
+    j1 = floor(y)
+    k1 = floor(z)
 
     if (i1 >= this%n1 .or. j1 >= this%n2 .or. &
-        i1 <= 1 .or. j1 <= 1) then
+        i1 < 1 .or. j1 < 1) then
       res = ZERO
-      DBG, "OUT OF BOUNDS"
-      dbgtail(field :: interpolate_3d_static)
+      if (present(out_of_bounds)) out_of_bounds = .true.
       return
     end if
 
@@ -498,125 +571,83 @@ contains
     z1 = real(k1, rk)
     z2 = real(k2, rk)
 
-    c111 = this%data(i1, j1, k1); debug(c111)
-    c121 = this%data(i1, j2, k1); debug(c121)
-    c211 = this%data(i2, j1, k1); debug(c211)
-    c221 = this%data(i2, j2, k1); debug(c221)
+    c111 = this%data(i1, j1, k1)
+    c121 = this%data(i1, j2, k1)
+    c211 = this%data(i2, j1, k1)
+    c221 = this%data(i2, j2, k1)
 
     if (do_bilin) then
       call bilinearinterp(x1, x1, x2, x2, y1, y2, c111, c121, c211, c221, x, y, res)
-      debug(res)
-      dbgtail(field :: interpolate_3d_static)
       return
     end if
 
-    c112 = this%data(i1, j1, k2); debug(c112)
-    c122 = this%data(i1, j2, k2); debug(c122)
-    c212 = this%data(i2, j1, k2); debug(c212)
-    c222 = this%data(i2, j2, k2); debug(c222)
+    c112 = this%data(i1, j1, k2)
+    c122 = this%data(i1, j2, k2)
+    c212 = this%data(i2, j1, k2)
+    c222 = this%data(i2, j2, k2)
 
     call trilinearinterp(x1, x2, y1, y2, z1, z2, c111, c121, c211, c221, c112, c122, c212, c222, x, y, z, res)
-    debug(res)
 
-    dbgtail(field :: interpolate_3d_static)
     return
   end function interpolate_3d_static
-  !===========================================
-  function time_interpolation_field(this, t, f1, f2) result(res)
-    class(t_field_dynamic), intent(in) :: this
-    real(rk), intent(in) :: t
-    class(t_field_static), intent(in) :: f1, f2
-    class(t_field_static), allocatable :: res
-    real(rk), dimension(:), allocatable :: c11, c12
-    real(rk), dimension(:, :), allocatable :: c21, c22
-    real(rk), dimension(:, :, :), allocatable :: c31, c32
-
-    if (f1%get_dim() /= f2%get_dim()) then
-      call throw_error("field :: time_interpolation_field", "The fields to interpolate between must have the same dimension")
-    end if
-
-    select type (f1)
-    type is (t_field_static_1d)
-      call f1%get(c11)
-    type is (t_field_static_2d)
-      call f1%get(c21)
-    type is (t_field_static_3d)
-      call f1%get(c31)
-    end select
-
-    select type (f2)
-    type is (t_field_static_1d)
-      call f2%get(c12)
-    type is (t_field_static_2d)
-      call f2%get(c22)
-    type is (t_field_static_3d)
-      call f2%get(c32)
-    end select
-
-    select type (f1)
-    type is (t_field_static_1d)
-      allocate (res, source=f1)
-      select type (res)
-      type is (t_field_static_1d)
-        call res%set(c11 + (c12 - c11) * (t / this%timestep))
-      end select
-    type is (t_field_static_2d)
-      allocate (res, source=f1)
-      select type (res)
-      type is (t_field_static_2d)
-        call res%set(c21 + (c22 - c21) * (t / this%timestep))
-      end select
-    type is (t_field_static_3d)
-      allocate (res, source=f1)
-      select type (res)
-      type is (t_field_static_3d)
-        call res%set(c31 + (c32 - c31) * (t / this%timestep))
-      end select
-    end select
-
-    return
-  end function time_interpolation_field
   !===========================================
   real(rk) function time_interpolation_scalar(this, t, f1, f2) result(res)
     class(t_field_dynamic), intent(in) :: this
     real(rk), intent(in) :: t
     real(rk), intent(in) :: f1, f2
 
+    if (t > this%timestep) then
+      res = f2
+      return
+    end if
+
     res = f1 + (f2 - f1) * (t / this%timestep)
 
     return
   end function time_interpolation_scalar
   !===========================================
-  function time_interpolation_1d(this, t, f1, f2, n) result(res)
+  function time_interpolation_1d(this, t, f1, f2) result(res)
     class(t_field_dynamic), intent(in) :: this
     real(rk), intent(in) :: t
     real(rk), dimension(:), intent(in) :: f1, f2
-    integer, intent(in) :: n
-    real(rk), dimension(n) :: res
+    real(rk), dimension(:), allocatable :: res
+
+    if (t > this%timestep) then
+      res = f2
+      return
+    end if
 
     res = f1 + (f2 - f1) * (t / this%timestep)
 
     return
   end function time_interpolation_1d
   !===========================================
-  function time_interpolation_2d(this, t, f1, f2, n1, n2) result(res)
+  function time_interpolation_2d(this, t, f1, f2) result(res)
     class(t_field_dynamic), intent(in) :: this
     real(rk), intent(in) :: t
     real(rk), dimension(:, :), intent(in) :: f1, f2
-    integer, intent(in) :: n1, n2
-    real(rk), dimension(n1, n2) :: res
+    real(rk), dimension(:, :), allocatable :: res
+
+    if (t > this%timestep) then
+      res = f2
+      return
+    end if
 
     res = f1 + (f2 - f1) * (t / this%timestep)
 
     return
   end function time_interpolation_2d
   !===========================================
-  function time_interpolation_3d(this, t, f1, f2, n1, n2, n3) result(res)
+  function time_interpolation_3d(this, t, f1, f2) result(res)
     class(t_field_dynamic), intent(in) :: this
     real(rk), intent(in) :: t
     real(rk), dimension(:, :, :), intent(in) :: f1, f2
-    integer, intent(in) :: n1, n2, n3
-    real(rk), dimension(n1, n2, n3) :: res
+    real(rk), dimension(:, :, :), allocatable :: res
+
+    if (t > this%timestep) then
+      res = f2
+      return
+    end if
 
     res = f1 + (f2 - f1) * (t / this%timestep)
 
@@ -625,179 +656,223 @@ contains
   !===========================================
   ! GETTER FUNCTIONS
   !===========================================
-  subroutine get_value_whole_1d_static(this, res)
+  function get_value_whole_1d_static(this) result(res)
     class(t_field_static_1d), intent(in) :: this
-    real(rk), dimension(:), intent(out) :: res
+    real(rk), dimension(:), allocatable :: res
 
-    res = this%data
+    allocate (res, source=this%data)
 
     return
-  end subroutine get_value_whole_1d_static
+  end function get_value_whole_1d_static
   !===========================================
-  subroutine get_value_whole_2d_static(this, res)
+  function get_value_whole_2d_static(this) result(res)
     class(t_field_static_2d), intent(in) :: this
-    real(rk), dimension(:, :), intent(out) :: res
+    real(rk), dimension(:, :), allocatable :: res
 
-    res = this%data
+    allocate (res, source=this%data)
 
     return
-  end subroutine get_value_whole_2d_static
+  end function get_value_whole_2d_static
   !===========================================
-  subroutine get_value_whole_3d_static(this, res)
+  function get_value_whole_3d_static(this) result(res)
     class(t_field_static_3d), intent(in) :: this
-    real(rk), dimension(:, :, :), intent(out) :: res
+    real(rk), dimension(:, :, :), allocatable :: res
 
-    res = this%data
+    allocate (res, source=this%data)
 
     return
-  end subroutine get_value_whole_3d_static
+  end function get_value_whole_3d_static
   !===========================================
-  subroutine get_value_xy_1d_static(this, x, res)
+  function get_value_xy_1d_static(this, x, out_of_bounds) result(res)
     class(t_field_static_1d), intent(in) :: this
     real(rk), intent(in) :: x
-    real(rk), intent(out) :: res
+    logical, intent(out), optional :: out_of_bounds
+    real(rk) :: res
+
+    if (present(out_of_bounds)) then
+      res = this%interpolate(x, out_of_bounds)
+    else
+      res = this%interpolate(x)
+    end if
 
     res = this%interpolate(x)
 
     return
-  end subroutine get_value_xy_1d_static
+  end function get_value_xy_1d_static
   !===========================================
-  subroutine get_value_xy_2d_static(this, x, y, res)
+  function get_value_xy_2d_static(this, x, y, out_of_bounds) result(res)
     class(t_field_static_2d), intent(in) :: this
     real(rk), intent(in) :: x, y
-    real(rk), intent(out) :: res
+    logical, intent(out), optional :: out_of_bounds
+    real(rk) :: res
 
-    res = this%interpolate(x, y)
+    if (present(out_of_bounds)) then
+      res = this%interpolate(x, y, out_of_bounds)
+    else
+      res = this%interpolate(x, y)
+    end if
 
     return
-  end subroutine get_value_xy_2d_static
+  end function get_value_xy_2d_static
   !===========================================
-  subroutine get_value_xy_3d_static(this, x, y, z, res)
+  function get_value_xy_3d_static(this, x, y, z, out_of_bounds) result(res)
     class(t_field_static_3d), intent(in) :: this
     real(rk), intent(in) :: x, y, z
-    real(rk), intent(out) :: res
+    logical, intent(out), optional :: out_of_bounds
+    real(rk) :: res
 
-    res = this%interpolate(x, y, z)
+    if (present(out_of_bounds)) then
+      res = this%interpolate(x, y, z, out_of_bounds)
+    else
+      res = this%interpolate(x, y, z)
+    end if
 
     return
-  end subroutine get_value_xy_3d_static
+  end function get_value_xy_3d_static
   !===========================================
-  subroutine get_value_idx_1d_static(this, i, res)
+  function get_value_idx_1d_static(this, i, out_of_bounds) result(res)
     class(t_field_static_1d), intent(in) :: this
     integer, intent(in) :: i
-    real(rk), intent(out) :: res
+    logical, intent(out), optional :: out_of_bounds
+    real(rk) :: res
+
+    if (present(out_of_bounds)) out_of_bounds = .false.
+
+    if (i < 1 .or. i > this%n) then
+      res = ZERO
+      if (present(out_of_bounds)) out_of_bounds = .true.
+      return
+    end if
 
     res = this%data(i)
 
     return
-  end subroutine get_value_idx_1d_static
+  end function get_value_idx_1d_static
   !===========================================
-  subroutine get_value_idx_2d_static(this, i, j, res)
+  function get_value_idx_2d_static(this, i, j, out_of_bounds) result(res)
     class(t_field_static_2d), intent(in) :: this
     integer, intent(in) :: i, j
-    real(rk), intent(out) :: res
+    logical, intent(out), optional :: out_of_bounds
+    real(rk) :: res
+
+    if (present(out_of_bounds)) out_of_bounds = .false.
+
+    if (i < 1 .or. i > this%n1 .or. j < 1 .or. j > this%n2) then
+      res = ZERO
+      if (present(out_of_bounds)) out_of_bounds = .true.
+      return
+    end if
 
     res = this%data(i, j)
 
     return
-  end subroutine get_value_idx_2d_static
+  end function get_value_idx_2d_static
   !===========================================
-  subroutine get_value_idx_3d_static(this, i, j, k, res)
+  function get_value_idx_3d_static(this, i, j, k, out_of_bounds) result(res)
     class(t_field_static_3d), intent(in) :: this
     integer, intent(in) :: i, j, k
-    real(rk), intent(out) :: res
+    logical, intent(out), optional :: out_of_bounds
+    real(rk) :: res
+
+    if (present(out_of_bounds)) out_of_bounds = .false.
+
+    if (i < 1 .or. i > this%n1 .or. j < 1 .or. j > this%n2 .or. k < 1 .or. k > this%n3) then
+      res = ZERO
+      if (present(out_of_bounds)) out_of_bounds = .true.
+      return
+    end if
 
     res = this%data(i, j, k)
 
     return
-  end subroutine get_value_idx_3d_static
+  end function get_value_idx_3d_static
   !===========================================
-  subroutine get_value_xy_1d_dynamic(this, t, x, res)
+  function get_value_xy_1d_dynamic(this, t, x) result(res)
     class(t_field_dynamic_1d), intent(in) :: this
     real(rk), intent(in) :: t, x
-    real(rk), intent(out) :: res
+    real(rk) :: res
     real(rk) :: c1, c2
 
-    call this%data_t1%get(x, c1)
-    call this%data_t2%get(x, c2)
+    c1 = this%data_t1%get(x)
+    c2 = this%data_t2%get(x)
 
     res = this%time_interpolation(t, c1, c2)
 
     return
-  end subroutine get_value_xy_1d_dynamic
+  end function get_value_xy_1d_dynamic
   !===========================================
-  subroutine get_value_xy_2d_dynamic(this, t, x, y, res)
+  function get_value_xy_2d_dynamic(this, t, x, y) result(res)
     class(t_field_dynamic_2d), intent(in) :: this
     real(rk), intent(in) :: t, x, y
-    real(rk), intent(out) :: res
+    real(rk) :: res
     real(rk) :: c1, c2
 
-    call this%data_t1%get(x, y, c1)
-    call this%data_t2%get(x, y, c2)
+    c1 = this%data_t1%get(x, y)
+    c2 = this%data_t2%get(x, y)
 
     res = this%time_interpolation(t, c1, c2)
 
     return
-  end subroutine get_value_xy_2d_dynamic
+  end function get_value_xy_2d_dynamic
   !===========================================
-  subroutine get_value_xy_3d_dynamic(this, t, x, y, z, res)
+  function get_value_xy_3d_dynamic(this, t, x, y, z) result(res)
     class(t_field_dynamic_3d), intent(in) :: this
     real(rk), intent(in) :: t, x, y, z
-    real(rk), intent(out) :: res
+    real(rk) :: res
     real(rk) :: c1, c2
 
-    call this%data_t1%get(x, y, z, c1)
-    call this%data_t2%get(x, y, z, c2)
+    c1 = this%data_t1%get(x, y, z)
+    c2 = this%data_t2%get(x, y, z)
 
     res = this%time_interpolation(t, c1, c2)
 
     return
-  end subroutine get_value_xy_3d_dynamic
+  end function get_value_xy_3d_dynamic
   !===========================================
-  subroutine get_value_idx_1d_dynamic(this, t, i, res)
+  function get_value_idx_1d_dynamic(this, t, i) result(res)
     class(t_field_dynamic_1d), intent(in) :: this
     real(rk), intent(in) :: t
     integer, intent(in) :: i
-    real(rk), intent(out) :: res
+    real(rk) :: res
     real(rk) :: c1, c2
 
-    call this%data_t1%get(i, c1)
-    call this%data_t2%get(i, c2)
+    c1 = this%data_t1%get(i)
+    c2 = this%data_t2%get(i)
 
     res = this%time_interpolation(t, c1, c2)
 
     return
-  end subroutine get_value_idx_1d_dynamic
+  end function get_value_idx_1d_dynamic
   !===========================================
-  subroutine get_value_idx_2d_dynamic(this, t, i, j, res)
+  function get_value_idx_2d_dynamic(this, t, i, j) result(res)
     class(t_field_dynamic_2d), intent(in) :: this
     real(rk), intent(in) :: t
     integer, intent(in) :: i, j
-    real(rk), intent(out) :: res
+    real(rk) :: res
     real(rk) :: c1, c2
 
-    call this%data_t1%get(i, j, c1)
-    call this%data_t2%get(i, j, c2)
+    c1 = this%data_t1%get(i, j)
+    c2 = this%data_t2%get(i, j)
 
     res = this%time_interpolation(t, c1, c2)
 
     return
-  end subroutine get_value_idx_2d_dynamic
+  end function get_value_idx_2d_dynamic
   !===========================================
-  subroutine get_value_idx_3d_dynamic(this, t, i, j, k, res)
+  function get_value_idx_3d_dynamic(this, t, i, j, k) result(res)
     class(t_field_dynamic_3d), intent(in) :: this
     real(rk), intent(in) :: t
     integer, intent(in) :: i, j, k
-    real(rk), intent(out) :: res
+    real(rk) :: res
     real(rk) :: c1, c2
 
-    call this%data_t1%get(i, j, k, c1)
-    call this%data_t2%get(i, j, k, c2)
+    c1 = this%data_t1%get(i, j, k)
+    c2 = this%data_t2%get(i, j, k)
 
     res = this%time_interpolation(t, c1, c2)
 
     return
-  end subroutine get_value_idx_3d_dynamic
+  end function get_value_idx_3d_dynamic
   !===========================================
   real(rk) function get_timestep(this) result(res)
     class(t_field_dynamic), intent(in) :: this
@@ -934,44 +1009,36 @@ contains
     class(t_field_static), intent(in) :: this
     integer, intent(in) :: slice_dim
     integer, intent(in) :: idx_other(:)
-    type(t_field_static_1d), intent(out) :: res
+    real(rk), dimension(:), intent(out) :: res
 
     select type (this)
     type is (t_field_static_1d)
       call throw_error("field :: slice_static", "Cannot slice a 1D field.")
+      
     type is (t_field_static_2d)
       if (size(idx_other) /= 1) then
         call throw_error("field :: slice_static", "Invalid number of indices.")
       end if
       select case (slice_dim)
       case (1)
-        call res%init(n=this%n1, &
-                      name="slice_"//trim(this%get_name()), &
-                      value=this%data(:, idx_other(1)))
+        res = this%data(:, idx_other(1))
       case (2)
-        call res%init(n=this%n2, &
-                      name="slice_"//trim(this%get_name()), &
-                      value=this%data(idx_other(1), :))
+        res = this%data(idx_other(1), :)
       case default
         call throw_error("field :: slice_static", "Invalid dimension.")
       end select
+
     type is (t_field_static_3d)
       if (size(idx_other) /= 2) then
         call throw_error("field :: slice_static", "Invalid number of indices.")
       end if
       select case (slice_dim)
       case (1)
-        call res%init(n=this%n1, &
-                      name="slice_"//trim(this%get_name()), &
-                      value=this%data(:, idx_other(1), idx_other(2)))
+        res = this%data(:, idx_other(1), idx_other(2))
       case (2)
-        call res%init(n=this%n2, &
-                      name="slice_"//trim(this%get_name()), &
-                      value=this%data(idx_other(1), :, idx_other(2)))
+        res = this%data(idx_other(1), :, idx_other(2))
       case (3)
-        call res%init(n=this%n3, &
-                      name="slice_"//trim(this%get_name()), &
-                      value=this%data(idx_other(1), idx_other(2), :))
+        res = this%data(idx_other(1), idx_other(2), :)
       case default
         call throw_error("field :: slice_static", "Invalid dimension.")
       end select
@@ -984,9 +1051,8 @@ contains
     integer, intent(in) :: slice_dim
     real(rk), intent(in) :: t
     integer, intent(in) :: idx_other(:)
-    type(t_field_static_1d), intent(out) :: res
-    type(t_field_static_1d) :: f1, f2
-    class(t_field_static), allocatable :: f_interp
+    real(rk), dimension(:), intent(out) :: res
+    real(rk), dimension(:), allocatable :: f1, f2
 
     select type (this)
     type is (t_field_dynamic_1d)
@@ -995,20 +1061,12 @@ contains
     type is (t_field_dynamic_2d)
       call this%data_t1%slice(slice_dim, idx_other, f1)
       call this%data_t2%slice(slice_dim, idx_other, f2)
-      f_interp = this%time_interpolation(t, f1, f2)
-      select type (f_interp)
-      type is (t_field_static_1d)
-        res = f_interp
-      end select
+      res = this%time_interpolation(t, f1, f2)
 
     type is (t_field_dynamic_3d)
       call this%data_t1%slice(slice_dim, idx_other, f1)
       call this%data_t2%slice(slice_dim, idx_other, f2)
-      f_interp = this%time_interpolation(t, f1, f2)
-      select type (f_interp)
-      type is (t_field_static_1d)
-        res = f_interp
-      end select
+      res = this%time_interpolation(t, f1, f2)
     end select
 
     return
@@ -1023,7 +1081,8 @@ contains
 
     select type (this)
     type is (t_field_static_1d)
-      allocate (t_field_static_1d :: res)
+      allocate (t_field_static_1d :: res, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: gradient_static", "Failed to allocate memory.")
       select type (res)
       type is (t_field_static_1d)
         call res%init(n=this%n - 1, &
@@ -1032,7 +1091,8 @@ contains
       end select
 
     type is (t_field_static_2d)
-      allocate (t_field_static_2d :: res)
+      allocate (t_field_static_2d :: res, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: gradient_static", "Failed to allocate memory.")
       select type (res)
       type is (t_field_static_2d)
         select case (dim)
@@ -1050,7 +1110,8 @@ contains
       end select
 
     type is (t_field_static_3d)
-      allocate (t_field_static_3d :: res)
+      allocate (t_field_static_3d :: res, stat=ierr)
+      if (ierr /= 0) call throw_error("field :: gradient_static", "Failed to allocate memory.")
       select type (res)
       type is (t_field_static_3d)
         select case (dim)
@@ -1086,6 +1147,42 @@ contains
   end subroutine gradient_dynamic
   !===========================================
   ! INFO FUNCTIONS (no idea how else to call these)
+  !===========================================
+  function min_static(this)
+    class(t_field_static), intent(in) :: this
+    real(rk) :: min_static
+
+    min_static = ZERO
+
+    select type (this)
+    type is (t_field_static_1d)
+      min_static = minval(this%data)
+    type is (t_field_static_2d)
+      min_static = minval(this%data)
+    type is (t_field_static_3d)
+      min_static = minval(this%data)
+    end select
+
+    return
+  end function min_static
+  !===========================================
+  function max_static(this)
+    class(t_field_static), intent(in) :: this
+    real(rk) :: max_static
+
+    max_static = ZERO
+
+    select type (this)
+    type is (t_field_static_1d)
+      max_static = maxval(this%data)
+    type is (t_field_static_2d)
+      max_static = maxval(this%data)
+    type is (t_field_static_3d)
+      max_static = maxval(this%data)
+    end select
+
+    return
+  end function max_static
   !===========================================
   logical function top_is_nan_static(this)
     class(t_field_static_3d), intent(in) :: this
