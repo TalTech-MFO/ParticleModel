@@ -13,8 +13,7 @@ code/.vscode
 
 # Test cases
 test_cases/CMEMS*hires
-test_cases/gof_250m_3d
-test_cases/gof_250m_3d
+test_cases/gof_250m_3d/data/hydro
 
 # Compiled code
 bin
