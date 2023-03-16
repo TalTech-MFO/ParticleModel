@@ -1,4 +1,4 @@
-Updated: Tue Mar  7 17:30:23 EET 2023
+Updated: Thu Mar 16 14:16:30 EET 2023
 code/datetime.f90-68-  type(t_datetime) function ctor_datetime(date_str) result(res)
 code/datetime.f90-69-    !---------------------------------------------
 code/datetime.f90-70-    ! Constructor for datetime
@@ -41,13 +41,13 @@ code/domain.f90-56-    !---------------------------------------------
 code/domain.f90-57-#ifdef DEBUG
 code/domain.f90-58-    use nc_manager
 --
-code/domain.f90-145-    call d%depdata%init(n1=nx, n2=ny, name=bathy, value=depdata, units="meters")
-code/domain.f90-146-
-code/domain.f90-147-    !---------------------------------------------
-code/domain.f90:148:    ! TODO: Seamask could have another value (4) to represent boundaries.
-code/domain.f90-149-    !       Boundary should have a thickness!
-code/domain.f90-150-    FMT2, "Making seamask"
-code/domain.f90-151-
+code/domain.f90-143-    call d%depdata%init(n1=nx, n2=ny, name=bathy, value=depdata, units="meters")
+code/domain.f90-144-
+code/domain.f90-145-    !---------------------------------------------
+code/domain.f90:146:    ! TODO: Seamask could have another value (4) to represent boundaries.
+code/domain.f90-147-    !       Boundary should have a thickness!
+code/domain.f90-148-    FMT2, "Making seamask"
+code/domain.f90-149-
 --
 code/fieldset.f90-217-    end do
 code/fieldset.f90-218-
@@ -57,48 +57,48 @@ code/fieldset.f90-221-      !       the same as the whole domain. This should be
 code/fieldset.f90-222-      this%dims(1) = this%domain%nx
 code/fieldset.f90-223-      this%dims(2) = this%domain%ny
 --
-code/fieldset.f90-347-    ! Get a list of directories or files that contain the data
-code/fieldset.f90-348-    ! The files should be named so that ls command would give them
-code/fieldset.f90-349-    ! in the right order. Including the date in the file name should be enough.
-code/fieldset.f90:350:    ! TODO: Alternatively, if all the files are in one directory,
-code/fieldset.f90-351-    !       it should list all the files in this%PATH.
-code/fieldset.f90-352-    !       (separate routine e.g., init_filelist ?)
-code/fieldset.f90:353:    ! TODO (later, probably never): sort the files somehow so all of this
-code/fieldset.f90-354-    !       would not depend on ls getting it right.
-code/fieldset.f90-355-    !---------------------------------------------
-code/fieldset.f90-356-    class(t_fieldset), intent(inout) :: this
+code/fieldset.f90-350-    ! Get a list of directories or files that contain the data
+code/fieldset.f90-351-    ! The files should be named so that ls command would give them
+code/fieldset.f90-352-    ! in the right order. Including the date in the file name should be enough.
+code/fieldset.f90:353:    ! TODO: Alternatively, if all the files are in one directory,
+code/fieldset.f90-354-    !       it should list all the files in this%PATH.
+code/fieldset.f90-355-    !       (separate routine e.g., init_filelist ?)
+code/fieldset.f90:356:    ! TODO (later, probably never): sort the files somehow so all of this
+code/fieldset.f90-357-    !       would not depend on ls getting it right.
+code/fieldset.f90-358-    !---------------------------------------------
+code/fieldset.f90-359-    class(t_fieldset), intent(inout) :: this
 --
-code/fieldset.f90-747-    ! adaptive vertical (sigma) coordinates change in time
-code/fieldset.f90-748-    ! and need to be read from the netcdf file. The domain class
-code/fieldset.f90-749-    ! does not handle this.
-code/fieldset.f90:750:    ! TODO: zax direction should be taken into account
-code/fieldset.f90-751-    !---------------------------------------------
-code/fieldset.f90-752-    class(t_fieldset), intent(in)   :: this
-code/fieldset.f90-753-    real(rk), intent(in)            :: t, z
+code/fieldset.f90-757-    ! adaptive vertical (sigma) coordinates change in time
+code/fieldset.f90-758-    ! and need to be read from the netcdf file. The domain class
+code/fieldset.f90-759-    ! does not handle this.
+code/fieldset.f90:760:    ! TODO: zax direction should be taken into account
+code/fieldset.f90-761-    !---------------------------------------------
+code/fieldset.f90-762-    class(t_fieldset), intent(in)   :: this
+code/fieldset.f90-763-    real(rk), intent(in)            :: t, z
 --
-code/fieldset.f90-927-  !===========================================
-code/fieldset.f90-928-  subroutine find_directory(this, date, dir_name, dir_idx)
-code/fieldset.f90-929-    !---------------------------------------------
-code/fieldset.f90:930:    ! TODO: might have to check if nc files start at time
-code/fieldset.f90-931-    ! [date] 00:00:00 or [date] 00:00:10 (at least in this particular example)
-code/fieldset.f90-932-    ! Compare every time?
-code/fieldset.f90-933-    ! Some validity check would be nice
+code/fieldset.f90-941-  !===========================================
+code/fieldset.f90-942-  subroutine find_directory(this, date, dir_name, dir_idx)
+code/fieldset.f90-943-    !---------------------------------------------
+code/fieldset.f90:944:    ! TODO: might have to check if nc files start at time
+code/fieldset.f90-945-    ! [date] 00:00:00 or [date] 00:00:10 (at least in this particular example)
+code/fieldset.f90-946-    ! Compare every time?
+code/fieldset.f90-947-    ! Some validity check would be nice
 --
-code/init.f90-182-  subroutine init_fieldset
-code/init.f90-183-    !---------------------------------------------
-code/init.f90-184-    ! Initialise the fieldset
-code/init.f90:185:    ! TODO: Fix memory calculation
-code/init.f90-186-    !---------------------------------------------
-code/init.f90-187-    character(len=LEN_CHAR_L)              :: initPath
-code/init.f90-188-    character(len=LEN_CHAR_L)              :: filename
+code/init.f90-181-  subroutine init_fieldset
+code/init.f90-182-    !---------------------------------------------
+code/init.f90-183-    ! Initialise the fieldset
+code/init.f90:184:    ! TODO: Fix memory calculation
+code/init.f90-185-    !---------------------------------------------
+code/init.f90-186-    character(len=LEN_CHAR_L)              :: initPath
+code/init.f90-187-    character(len=LEN_CHAR_L)              :: filename
 --
-code/init.f90-269-
-code/init.f90-270-      if (nc_var_exists(trim(filename), trim(elevvarname))) then
-code/init.f90-271-        call fieldset%add_field("ELEV", elevvarname)
-code/init.f90:272:        ! TODO: set_elev for faster lookup
-code/init.f90-273-      end if
-code/init.f90-274-    end if
-code/init.f90-275-    !---------------------------------------------
+code/init.f90-268-
+code/init.f90-269-      if (nc_var_exists(trim(filename), trim(elevvarname))) then
+code/init.f90-270-        call fieldset%add_field("ELEV", elevvarname)
+code/init.f90:271:        ! TODO: set_elev for faster lookup
+code/init.f90-272-      end if
+code/init.f90-273-    end if
+code/init.f90-274-    !---------------------------------------------
 --
 code/interp.f90-57-    !      c_k
 code/interp.f90-58-    !        1 - bottom point along y-axis
@@ -116,21 +116,21 @@ code/main.f90-11-#if (defined(BIOFOULING_KOOI) || defined(BIOFOULING_TSIARAS) ||
 code/main.f90-12-  use run_params, only: biofouling_nmlfilename
 code/main.f90-13-#endif
 --
-code/output.f90-619-  subroutine write_restart(nwrite)
-code/output.f90-620-    ! ---------------------------------------
-code/output.f90-621-    ! Write restart file
-code/output.f90:622:    ! TODO: this should be a method of the particle (array) class
-code/output.f90-623-    ! ---------------------------------------
-code/output.f90-624-    integer, intent(in) :: nwrite
-code/output.f90-625-    character(len=LEN_CHAR_L) :: restart_file
+code/output.f90-624-  subroutine write_restart(nwrite)
+code/output.f90-625-    ! ---------------------------------------
+code/output.f90-626-    ! Write restart file
+code/output.f90:627:    ! TODO: this should be a method of the particle (array) class
+code/output.f90-628-    ! ---------------------------------------
+code/output.f90-629-    integer, intent(in) :: nwrite
+code/output.f90-630-    character(len=LEN_CHAR_L) :: restart_file
 --
-code/particle.f90-284-  !===========================================
-code/particle.f90-285-  subroutine check_depth(this, fieldset, t)
+code/particle.f90-282-  !===========================================
+code/particle.f90-283-  subroutine check_depth(this, fieldset, t)
+code/particle.f90-284-    !---------------------------------------------
+code/particle.f90:285:    ! TODO: Interpolation for bathymetry?
 code/particle.f90-286-    !---------------------------------------------
-code/particle.f90:287:    ! TODO: Interpolation for bathymetry?
-code/particle.f90-288-    !---------------------------------------------
-code/particle.f90-289-
-code/particle.f90-290-    class(t_particle), intent(inout) :: this
+code/particle.f90-287-
+code/particle.f90-288-    class(t_particle), intent(inout) :: this
 --
 code/physics.f90-6-module mod_physics
 code/physics.f90-7-  !----------------------------------------------------------------
@@ -160,9 +160,9 @@ code/vars.f90-84-  use mod_fieldset
 code/vars.f90-85-
 code/vars.f90-86-  logical                   :: has_subdomains, &               ! Is the data in multiple files (true) or one file (false)?
 code/vars.f90:87:                               has_bottom_stress               ! TODO: bottom_stress_method
-code/vars.f90-88-  integer                   :: nlevels, &
-code/vars.f90-89-                               zax_style, &                    ! Depth values (1) or layer thickness (2)
-code/vars.f90-90-                               zax_direction, &                ! > 0 - positive up, < 0 - positive down
+code/vars.f90-88-  integer                   :: zax_style, &                    ! Depth values (1) or layer thickness (2)
+code/vars.f90-89-                               zax_direction, &                ! > 0 - positive up, < 0 - positive down
+code/vars.f90-90-                               density_method, &               ! 0 - default density, 1 - has variable, 2 - calculate from T/S
 --
 code/vertical_motion.f90-42-    !---------------------------------------------
 code/vertical_motion.f90-43-    ! Gives a settled particle vertical velocity if
@@ -172,10 +172,10 @@ code/vertical_motion.f90-46-    ! perhaps should be calculated as the particles'
 code/vertical_motion.f90-47-    ! Ref: Erosion Behavior of Different Microplastic Particles in Comparison to Natural Sediments
 code/vertical_motion.f90-48-    !       Kryss Waldschläger and Holger Schüttrumpf
 --
-code/vertical_motion.f90-85-  real(rk) function buoyancy(p, fieldset, time, delta_rho, kin_visc) result(res)
-code/vertical_motion.f90-86-    !---------------------------------------------
-code/vertical_motion.f90-87-    ! Calculate the vertical velocity due to buoyancy
-code/vertical_motion.f90:88:    ! TODO: Which timestep should be used? (original or t + dt?)
-code/vertical_motion.f90-89-    !---------------------------------------------
-code/vertical_motion.f90-90-    type(t_particle), intent(in)    :: p
-code/vertical_motion.f90-91-    type(t_fieldset), intent(in)    :: fieldset
+code/vertical_motion.f90-87-  real(rk) function buoyancy(p, fieldset, time, delta_rho, kin_visc) result(res)
+code/vertical_motion.f90-88-    !---------------------------------------------
+code/vertical_motion.f90-89-    ! Calculate the vertical velocity due to buoyancy
+code/vertical_motion.f90:90:    ! TODO: Which timestep should be used? (original or t + dt?)
+code/vertical_motion.f90-91-    !---------------------------------------------
+code/vertical_motion.f90-92-    type(t_particle), intent(in)    :: p
+code/vertical_motion.f90-93-    type(t_fieldset), intent(in)    :: fieldset
