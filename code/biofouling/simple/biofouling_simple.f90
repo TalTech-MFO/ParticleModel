@@ -84,8 +84,6 @@ contains
     real(rk) :: chla, bf_growth
     real(rk) :: h_bf_max, h_bf, r_pl, rho_pl, r_tot, rho_tot
 
-    dbghead(biofouling :: biofouling)
-
     chla = get_ambient_chla(fieldset, time, p%i0, p%j0, p%k0)
     ! If chl-a concentration is above a threshold, biofouling can occur
     if (chla > growth_init_threshold) then
@@ -105,7 +103,6 @@ contains
       p%h_biofilm = h_bf
     end if
 
-    dbgtail(biofouling :: biofouling)
     return
   end subroutine biofouling
 

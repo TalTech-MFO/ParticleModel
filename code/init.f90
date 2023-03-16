@@ -11,7 +11,7 @@ module mod_initialise
   use run_params, only: runid, dry_run, restart, restart_path, nmlfilename
   use mod_fieldset
   use field_vars, only: GETMPATH, PMAPFILE, has_subdomains, density_method, viscosity_method, has_bottom_stress, &
-                        file_prefix, file_suffix, nlevels, &
+                        file_prefix, file_suffix, &
                         xdimname, ydimname, zdimname, &
                         uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
                         tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, zax_style, zax_direction, fieldset
@@ -65,7 +65,7 @@ contains
     namelist /particle_vars/ inputstep, particle_init_method, coordfile, max_age, kill_beached, kill_boundary
     namelist /time_vars/ run_start, run_end, dt
     namelist /field_vars/ GETMPATH, PMAPFILE, has_subdomains, &
-      file_prefix, file_suffix, nlevels, &
+      file_prefix, file_suffix, &
       xdimname, ydimname, zdimname, &
       uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
       tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, zax_style, zax_direction
@@ -122,7 +122,6 @@ contains
     FMT3, var2val(has_subdomains)
     FMT3, var2val_char(file_prefix)
     FMT3, var2val_char(file_suffix)
-    FMT3, var2val(nlevels)
     FMT3, var2val_char(xdimname)
     FMT3, var2val_char(ydimname)
     FMT3, var2val_char(zdimname)
@@ -155,6 +154,7 @@ contains
     character(len=LEN_CHAR_S), parameter :: startName = "Start"
     character(len=LEN_CHAR_S), parameter :: endName = "End"
     character(len=LEN_CHAR_S), parameter :: simName = "Simulation time"
+    character(len=LEN_CHAR_L)            :: info
 
     FMT1, "======== Init time ========"
 
@@ -169,11 +169,10 @@ contains
     ! Number of iterations
     nTimes = int(date_diff(run_start_dt, run_end_dt) / dt)
 
-    FMT2, "Model runs from"
-    call run_start_dt%print_short_date
-    FMT2, "to"
-    call run_end_dt%print_short_date
-    FMT2, "Timestep: ", dt, " seconds, ", nTimes, " iterations"
+    write (info, "(a)") "Model runs from "//run_start_dt%nice_format()//" to "//run_end_dt%nice_format()
+    FMT2, trim(info)
+    write (info, "(a,f6.2,a,i6.0,a)") "Timestep: ", dt, " seconds ->", nTimes, " iterations"
+    FMT2, trim(info)
 
     FMT2, "Finished init time"
 
@@ -187,7 +186,7 @@ contains
     character(len=LEN_CHAR_L)              :: initPath
     character(len=LEN_CHAR_L)              :: filename
     character(len=LEN_CHAR_S), allocatable :: dimnames(:)
-    real(rk)                               :: real_var
+    ! real(rk)                               :: real_var
     integer                                :: ndim      ! The (default) number of dimensions for the fieldset
     integer, allocatable                   :: dim_idx(:) ! The default dimensions for the fieldset
 

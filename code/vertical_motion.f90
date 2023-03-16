@@ -55,30 +55,32 @@ contains
     real(rk) :: i, j, k
     real(rk), intent(out) :: u_star
 
-    dbghead(vertical_motion :: resuspension)
-
     res = ZERO
     u_star = ZERO
     if (p%state /= ST_BOTTOM) then
-      dbgtail(vertical_motion :: resuspension)
       return
     end if
 
-    if (resuspension_coeff >= ZERO) then
+    if (resuspension_coeff > ZERO) then
 
-      i = p%ir0; debug(i)
-      j = p%jr0; debug(j)
-      k = p%kr0; debug(k)
+      i = p%ir0
+      j = p%jr0
+      k = p%kr0
+
+#ifdef DEBUG
+      if (k >= fieldset%zax_top_idx) then
+        ERROR, "vertical_motion :: resuspension: particle is above the top of the domain"
+        debug(i); debug(j); debug(k)
+        debug(resuspension_coeff)
+      end if
+#endif
 
       u_star = bottom_friction_velocity(fieldset, time, i, j, k)
-      debug(u_star)
       if (u_star > resuspension_threshold) then
         res = u_star * resuspension_coeff
-        debug(res)
       end if
     end if
 
-    dbgtail(vertical_motion :: resuspension)
     return
   end function resuspension
   !===========================================
@@ -95,34 +97,26 @@ contains
     real(rk), intent(out)           :: delta_rho ! Density difference
     real(rk), intent(out)           :: kin_visc  ! Kinematic viscosity (surrounding the particle)
 
-    dbghead(vertical_motion :: buoyancy)
-
     res = ZERO
     if (p%state /= ST_SUSPENDED) then
-      dbgtail(vertical_motion :: buoyancy)
       return
     end if
 
-    i = p%ir0; debug(i)
-    j = p%jr0; debug(j)
-    k = p%kr0; debug(k)
+    i = p%ir0
+    j = p%jr0
+    k = p%kr0
 
     rho_sw = ONE
 
     ! Density
     rho_sw = seawater_density(fieldset, time, i, j, k, p%depth0)
-    debug(rho_sw)
     delta_rho = p%rho - rho_sw
-    debug(delta_rho)
 
     ! Viscosity
     kin_visc = seawater_viscosity(fieldset, time, i, j, k, p%depth0)
-    debug(kin_visc)
 
     res = Kooi_vertical_velocity(delta_rho, p%radius, rho_sw, kin_visc)
-    debug(res)
 
-    dbgtail(vertical_motion :: buoyancy)
     return
   end function buoyancy
   !===========================================

@@ -85,8 +85,7 @@ module field_vars
 
   logical                   :: has_subdomains, &               ! Is the data in multiple files (true) or one file (false)?
                                has_bottom_stress               ! TODO: bottom_stress_method
-  integer                   :: nlevels, &
-                               zax_style, &                    ! Depth values (1) or layer thickness (2)
+  integer                   :: zax_style, &                    ! Depth values (1) or layer thickness (2)
                                zax_direction, &                ! > 0 - positive up, < 0 - positive down
                                density_method, &               ! 0 - default density, 1 - has variable, 2 - calculate from T/S
                                viscosity_method                ! 0 - default viscosity, 1 - has variable, 2 - calculate from T/S

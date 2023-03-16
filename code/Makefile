@@ -38,8 +38,6 @@ FFLAGS += -DSMAGORINSKY_INTERP_UV
 FFLAGS += -DPARTICLE_SNAP_SEALVL
 
 # Land interaction methods
-# FFLAGS += -DPARTICLE_BOUNCE
-FFLAGS += -DPARTICLE_REDIRECT
 # FFLAGS += -DPARTICLE_BEACH_IMMEDIATELY
 
 # Ignore particles that are outside the domain

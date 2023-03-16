@@ -250,6 +250,7 @@ contains
     type(t_datetime), intent(in)     :: start
     real(rk), intent(in)             :: dt
     real(rk)                         :: t1, t2
+    character(len=LEN_CHAR_L)        :: info
 
     FMT1, "======== Init time ========"
 
@@ -273,9 +274,11 @@ contains
     call this%set_simulation_timestep(dt)
 
     FMT2, "The starting path is "//trim(this%current_path)
-    FMT2, "The starting time is "
-    call this%date_t1%print_short_date()
-    FMT2, "at time step ", this%read_idx, " of ", this%current_ntimes
+    write(info, "(a,i4,a,i4)") "The starting time is "//this%date_t1%nice_format()//" at time step ", this%read_idx, " of ", this%current_ntimes
+    FMT2, trim(info)
+    ! FMT2, "The starting time is "
+    ! call this%date_t1%print_short_date()
+    ! FMT2, "at time step ", this%read_idx, " of ", this%current_ntimes
 
     return
   end subroutine init_time
@@ -516,7 +519,6 @@ contains
 
     this%num_fields = this%num_fields + 1
 
-    dbgtail(fieldset :: add_field)
     return
   end subroutine add_field
   !===========================================
@@ -588,7 +590,9 @@ contains
     character(*), intent(in)        :: field_name
     real(rk), intent(in)            :: t, i, j
     real(rk), optional, intent(in)  :: k
-    class(t_variable), pointer :: p_field
+    class(t_variable), pointer      :: p_field
+
+    res = ZERO
 
     call this%fields%get_item(field_name, p_field)
 
@@ -618,7 +622,9 @@ contains
     real(rk), intent(in)           :: t
     integer, intent(in)            :: i, j
     integer, optional, intent(in)  :: k
-    class(t_variable), pointer         :: p_field
+    class(t_variable), pointer     :: p_field
+
+    res = ZERO
 
     call this%fields%get_item(field_name, p_field)
 
@@ -649,6 +655,8 @@ contains
     real(rk), optional, intent(in) :: k
     class(t_variable), pointer     :: p_field
 
+    res = ZERO
+
     call this%fields%get_item(idx, p_field)
 
     select type (p_field)
@@ -678,6 +686,8 @@ contains
     integer, intent(in)            :: i, j
     integer, optional, intent(in)  :: k
     class(t_variable), pointer     :: p_field
+
+    res = ZERO
 
     call this%fields%get_item(idx, p_field)
 
@@ -1182,7 +1192,6 @@ contains
     class(t_variable), pointer       :: p_field
     integer                          :: i_field
     logical                          :: ign_chk, ud
-
 
     if (present(ignore_check)) then
       ign_chk = ignore_check
