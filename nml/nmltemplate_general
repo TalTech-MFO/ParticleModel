@@ -113,7 +113,6 @@
 !                         .false. - assume all files are in one directory and search for file names "GETMPATH/[prefix]*[suffix]*.nc"
 ! file_prefix    - [char] Before processor number
 ! file_suffix    - [char] After processor number
-! nlevels        - [int]  Number of vertical levels
 ! xdimname       - [char] Name of x-dimension in GETM data
 ! ydimname       - [char] Name of y-dimension in GETM data
 ! zdimname       - [char] Name of z-dimension in GETM data
@@ -128,6 +127,7 @@
 ! viscvarname    - [char] Name of viscosity variable in GETM data
 ! taubxvarname   - [char] Name of bottom stress x-component in GETM data
 ! taubyvarname   - [char] Name of bottom stress y-component in GETM data
+! vdiffvarname   - [char] Name of vertical diffusivity in GETM data
 ! zax_style      - [int]  Vertical coordinate values 
 !                         0 - depth values (static)
 !                         1 - depth values (adaptive)
@@ -144,7 +144,6 @@
   has_subdomains = .true.
   file_prefix = ''
   file_suffix = ''
-  nlevels = 1
   xdimname = 'lon'
   ydimname = 'lat'
   zdimname = 'level'
@@ -156,9 +155,10 @@
   rhovarname = 'rho'
   tempvarname = 'temp'
   saltvarname = 'salt'
-  viscvarname = 'nuh'
+  viscvarname = 'num'
   taubxvarname = 'taubx'
   taubyvarname = 'tauby'
+  vdiffvarname = 'nuh'
   zax_style = 1
   zax_direction = 1
 /

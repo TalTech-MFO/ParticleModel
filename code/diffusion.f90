@@ -3,6 +3,7 @@
 #endif
 #include "cppdefs.h"
 #include "particle.h"
+#include "field.h"
 module mod_diffusion
   use mod_precdefs
   use mod_errors
@@ -30,8 +31,8 @@ contains
     real(rk)                        :: x0, x1, &
                                        y0, y1
 
-    i = p%ir1
-    j = p%jr1
+    i = p%ir0
+    j = p%jr0
 
     call fieldset%domain%lonlat2xy(p%lon1, p%lat1, x0, y0)
 
@@ -61,9 +62,12 @@ contains
                                        y0, y1, &
                                        z0, z1
 
-    i = p%ir1
-    j = p%jr1
-    k = p%kr1
+    dbghead(diffusion :: diffuse_3D)
+    i = p%ir0
+    j = p%jr0
+    k = p%kr0
+
+    debug(i); debug(j); debug(k); debug(time)
 
     call fieldset%domain%lonlat2xy(p%lon1, p%lat1, x0, y0)
     z0 = p%depth1
@@ -73,7 +77,16 @@ contains
 #elif defined(SMAGORINSKY_FULL_FIELD)
     Ah = get_Ah_Smagorinsky_full_field(fieldset, i, j, k)
 #endif
-    kv = diffusion_vert_const
+    select case (vertical_diffusion_method)
+    case (DIFF_VARIABLE)
+      kv = fieldset%get("KV", time, i, j, k)
+    case (DIFF_DEFAULT)
+      kv = diffusion_vert_const
+    case default
+      call throw_error("diffusion :: diffuse_3D", "Unknown vertical diffusion method")
+    end select
+
+    debug(Ah); debug(kv)
 
     x1 = x0 + normal_random() * sqrt(2 * Ah * dt)
     y1 = y0 + normal_random() * sqrt(2 * Ah * dt)

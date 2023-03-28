@@ -10,11 +10,12 @@ module mod_initialise
   use mod_errors
   use run_params, only: runid, dry_run, restart, restart_path, nmlfilename
   use mod_fieldset
-  use field_vars, only: GETMPATH, PMAPFILE, has_subdomains, density_method, viscosity_method, has_bottom_stress, &
-                        file_prefix, file_suffix, nlevels, &
+  use field_vars, only: GETMPATH, PMAPFILE, has_subdomains, density_method, viscosity_method, vertical_diffusion_method, has_bottom_stress, &
+                        file_prefix, file_suffix, &
                         xdimname, ydimname, zdimname, &
                         uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
-                        tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, zax_style, zax_direction, fieldset
+                        tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, &
+                        vdiffvarname, zax_style, zax_direction, fieldset
   use mod_domain_vars, only: TOPOFILE, bathyvarname, lonvarname, latvarname, nx, ny, domain
   use mod_domain
   use nc_manager, only: nc_read_time_val, nc_var_exists
@@ -65,10 +66,10 @@ contains
     namelist /particle_vars/ inputstep, particle_init_method, coordfile, max_age, kill_beached, kill_boundary
     namelist /time_vars/ run_start, run_end, dt
     namelist /field_vars/ GETMPATH, PMAPFILE, has_subdomains, &
-      file_prefix, file_suffix, nlevels, &
+      file_prefix, file_suffix, &
       xdimname, ydimname, zdimname, &
       uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
-      tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, zax_style, zax_direction
+      tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, vdiffvarname, zax_style, zax_direction
 
     FMT1, "======== Init namelist ========"
 
@@ -122,7 +123,6 @@ contains
     FMT3, var2val(has_subdomains)
     FMT3, var2val_char(file_prefix)
     FMT3, var2val_char(file_suffix)
-    FMT3, var2val(nlevels)
     FMT3, var2val_char(xdimname)
     FMT3, var2val_char(ydimname)
     FMT3, var2val_char(zdimname)
@@ -136,6 +136,7 @@ contains
     FMT3, var2val_char(viscvarname)
     FMT3, var2val_char(taubxvarname)
     FMT3, var2val_char(taubyvarname)
+    FMT3, var2val_char(vdiffvarname)
     FMT3, var2val(zax_style)
     FMT3, var2val(zax_direction)
 
@@ -155,6 +156,7 @@ contains
     character(len=LEN_CHAR_S), parameter :: startName = "Start"
     character(len=LEN_CHAR_S), parameter :: endName = "End"
     character(len=LEN_CHAR_S), parameter :: simName = "Simulation time"
+    character(len=LEN_CHAR_L)            :: info
 
     FMT1, "======== Init time ========"
 
@@ -169,11 +171,10 @@ contains
     ! Number of iterations
     nTimes = int(date_diff(run_start_dt, run_end_dt) / dt)
 
-    FMT2, "Model runs from"
-    call run_start_dt%print_short_date
-    FMT2, "to"
-    call run_end_dt%print_short_date
-    FMT2, "Timestep: ", dt, " seconds, ", nTimes, " iterations"
+    write (info, "(a)") "Model runs from "//run_start_dt%nice_format()//" to "//run_end_dt%nice_format()
+    FMT2, trim(info)
+    write (info, "(a,f6.2,a,i6.0,a)") "Timestep: ", dt, " seconds ->", nTimes, " iterations"
+    FMT2, trim(info)
 
     FMT2, "Finished init time"
 
@@ -187,7 +188,7 @@ contains
     character(len=LEN_CHAR_L)              :: initPath
     character(len=LEN_CHAR_L)              :: filename
     character(len=LEN_CHAR_S), allocatable :: dimnames(:)
-    real(rk)                               :: real_var
+    ! real(rk)                               :: real_var
     integer                                :: ndim      ! The (default) number of dimensions for the fieldset
     integer, allocatable                   :: dim_idx(:) ! The default dimensions for the fieldset
 
@@ -326,7 +327,16 @@ contains
         call throw_warning("initialise :: init_fieldset", "Could not find bottom stress ('"//trim(taubxvarname)//"'/'"//trim(taubyvarname)//"') in "//trim(filename))
       end if
     end if
-
+    !---------------------------------------------
+    if (do_diffusion) then
+      if (nc_var_exists(trim(filename), trim(vdiffvarname))) then
+        call fieldset%add_field("KV", vdiffvarname)
+        vertical_diffusion_method = DIFF_VARIABLE
+      else
+        call throw_warning("initialise :: init_fieldset", "Could not find vertical diffusivity ('"//trim(vdiffvarname)//"') in "//trim(filename)//". Using default value.")
+        vertical_diffusion_method = DIFF_DEFAULT
+      end if
+    end if
     !---------------------------------------------
     if (do_biofouling) then
       call init_biofouling(fieldset)

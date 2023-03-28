@@ -19,6 +19,9 @@
 #define OUT_ID
 #define OUT_VELOCITY
 #define OUT_SETTLING_VELOCITY
+#define OUT_AGE
+#define OUT_H_BIOFILM
+#define OUT_GROWTH_BIOFILM
 #define OUT_STATE
 #endif
 

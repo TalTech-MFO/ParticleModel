@@ -47,8 +47,7 @@ contains
 #endif
 
     FMT1, "======== Starting time loop ========"
-    call date_and_time(date=d, time=t)
-    FMT2, t(1:2), ":", t(3:4), ":", t(5:10)
+
 #ifdef USE_OMP
     FMT2, "Using OpenMP with ", omp_get_max_threads(), " threads"
 #endif
@@ -69,7 +68,7 @@ contains
 #ifndef SAY_LESS
       if (mod(itime, PROGRESSINFO) .eq. 0) then
         call date_and_time(date=d, time=t)
-        write (info, "(a,i22,a)") "| "//theDate%nice_format()//" | itime = ", itime, " | Time: "//t(1:2)//":"//t(3:4)//":"//t(5:10)//"  |"
+  write (info, "(a,i22,a)") "| "//theDate%nice_format()//" | itime = ", itime, " | Time: "//t(1:2)//":"//t(3:4)//":"//t(5:10)//"  |"
         FMT2, LINE, LINE, LINE
         FMT2, trim(info)
         FMT2, LINE, LINE, LINE

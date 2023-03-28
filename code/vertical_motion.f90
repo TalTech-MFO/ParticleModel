@@ -27,14 +27,51 @@ contains
     type(t_fieldset), intent(in)    :: fieldset
     real(rk), intent(in)            :: time
     real(rk)                        :: vert_vel
+    real(rk) :: elev
 
+    dbghead(vertical_motion :: vertical_velocity)
+    debug(time)
     vert_vel = buoyancy(p, fieldset, time, p%delta_rho, p%kin_visc) + resuspension(p, fieldset, time, p%u_star)
     debug(vert_vel)
 
+    ! Correct velocity if particle jumps out of water
+    elev = fieldset%sealevel(time, p%ir0, p%jr0)
+    if (p%depth1 + (vert_vel * dt) >= elev) then
+      vert_vel = ((elev - p%depth1) / dt) * 0.99_rk
+    end if
+
+#ifdef DEBUG
+    if (((p%depth1 + (vert_vel * dt)) < -150._rk) .or. ((p%depth1 + (vert_vel * dt)) > 2._rk)) then
+      ERROR, "vertical_motion :: vertical_velocity: particle depth out of range"
+      ERROR, "vertical_motion :: vertical_velocity: particle depth = ", p%depth1
+      ERROR, "vertical_motion :: vertical_velocity: particle vertical velocity = ", vert_vel
+      ERROR, "vertical_motion :: vertical_velocity: particle state = ", p%state
+      ERROR, "vertical_motion :: vertical_velocity: particle delta_rho = ", p%delta_rho
+      ERROR, "vertical_motion :: vertical_velocity: particle kin_visc = ", p%kin_visc
+      ERROR, p%i0, p%j0, p%k0, p%ir0, p%jr0, p%kr0
+      ERROR, p%i1, p%j1, p%k1, p%ir1, p%jr1, p%kr1
+      ERROR, p%lon0, p%lat0, p%depth0
+      ERROR, p%lon1, p%lat1, p%depth1
+      ERROR, "Correcting vertical velocity: "
+      vert_vel = ((2._rk - p%depth1) / dt) * 0.99_rk
+      ERROR, "vertical_motion :: vertical_velocity: corrected vertical_velocity = ", vert_vel
+      ERROR, "vertical_motion :: vertical_velocity: corrected particle depth = ", p%depth1 + (vert_vel * dt)
+      ERROR, "Correcting velocity according to sealevel: "
+      elev = fieldset%sealevel(time, p%ir0, p%jr0)
+      vert_vel = ((elev - p%depth1) / dt) * 0.99_rk
+      ERROR, "vertical_motion :: vertical_velocity: sealevel = ", elev
+      ERROR, "vertical_motion :: vertical_velocity: corrected vertical_velocity = ", vert_vel
+      ERROR, "vertical_motion :: vertical_velocity: corrected particle depth = ", p%depth1 + (vert_vel * dt)
+      call throw_error("vertical_motion :: vertical_velocity", "particle depth out of range")
+    end if
+#endif
+
     p%depth1 = p%depth1 + (vert_vel * dt)
     p%vel_vertical = vert_vel
+
     call fieldset%search_indices(t=time, x=p%lon1, y=p%lat1, z=p%depth1, k=p%k1, kr=p%kr1)
 
+    dbgtail(vertical_motion :: vertical_velocity)
     return
   end subroutine vertical_velocity
   !===========================================
@@ -55,30 +92,32 @@ contains
     real(rk) :: i, j, k
     real(rk), intent(out) :: u_star
 
-    dbghead(vertical_motion :: resuspension)
-
     res = ZERO
     u_star = ZERO
     if (p%state /= ST_BOTTOM) then
-      dbgtail(vertical_motion :: resuspension)
       return
     end if
 
-    if (resuspension_coeff >= ZERO) then
+    if (resuspension_coeff > ZERO) then
 
-      i = p%ir0; debug(i)
-      j = p%jr0; debug(j)
-      k = p%kr0; debug(k)
+      i = p%ir0
+      j = p%jr0
+      k = p%kr0
+
+#ifdef DEBUG
+      if (k >= fieldset%zax_top_idx) then
+        ERROR, "vertical_motion :: resuspension: particle is above the top of the domain"
+        debug(i); debug(j); debug(k)
+        debug(resuspension_coeff)
+      end if
+#endif
 
       u_star = bottom_friction_velocity(fieldset, time, i, j, k)
-      debug(u_star)
       if (u_star > resuspension_threshold) then
         res = u_star * resuspension_coeff
-        debug(res)
       end if
     end if
 
-    dbgtail(vertical_motion :: resuspension)
     return
   end function resuspension
   !===========================================
@@ -95,34 +134,39 @@ contains
     real(rk), intent(out)           :: delta_rho ! Density difference
     real(rk), intent(out)           :: kin_visc  ! Kinematic viscosity (surrounding the particle)
 
-    dbghead(vertical_motion :: buoyancy)
-
     res = ZERO
     if (p%state /= ST_SUSPENDED) then
-      dbgtail(vertical_motion :: buoyancy)
       return
     end if
 
-    i = p%ir0; debug(i)
-    j = p%jr0; debug(j)
-    k = p%kr0; debug(k)
+    i = p%ir0
+    j = p%jr0
+    k = p%kr0
 
     rho_sw = ONE
 
     ! Density
     rho_sw = seawater_density(fieldset, time, i, j, k, p%depth0)
-    debug(rho_sw)
     delta_rho = p%rho - rho_sw
-    debug(delta_rho)
 
     ! Viscosity
     kin_visc = seawater_viscosity(fieldset, time, i, j, k, p%depth0)
-    debug(kin_visc)
 
     res = Kooi_vertical_velocity(delta_rho, p%radius, rho_sw, kin_visc)
-    debug(res)
 
-    dbgtail(vertical_motion :: buoyancy)
+#ifdef DEBUG
+    if (res > 1.) then
+      ERROR, "vertical_motion :: buoyancy: vertical velocity too large"
+      ERROR, "vertical_motion :: buoyancy: vertical velocity = ", res
+      ERROR, "vertical_motion :: buoyancy: particle state = ", p%state
+      ERROR, "vertical_motion :: buoyancy: particle delta_rho = ", delta_rho
+      ERROR, "vertical_motion :: buoyancy: seawater density = ", rho_sw
+      ERROR, "vertical_motion :: buoyancy: seawater kin_visc = ", kin_visc
+      ERROR, "vertical_motion :: buoyancy: particle vel_vertical = ", p%vel_vertical
+      call throw_error("vertical_motion :: buoyancy", "Too high vertical velocity")
+    end if
+#endif
+
     return
   end function buoyancy
   !===========================================

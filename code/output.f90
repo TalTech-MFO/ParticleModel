@@ -52,6 +52,7 @@ contains
   !===========================================
   subroutine init_output
     logical :: dirExists
+    character(len=LEN_CHAR_L) :: info
 
     FMT1, "======== Init output ========"
 
@@ -75,10 +76,14 @@ contains
     n_out = nTimes / outputstep
     FMT2, var2val(write_all_particles)
     FMT2, var2val(write_active_particles)
-    FMT2, "Writing output every ", outputstep, " timesteps, or ", (outputstep * dt) / 3600., "hours"
-    FMT2, "Saving ", n_out, " timesteps"
+    write(info, "(a,i5,a,f6.2,a)") "Writing output every ", outputstep, " timesteps, or ", (outputstep * dt) / 3600., " hours"
+    FMT2, trim(info)
+    write(info, "(a,i5,a)") "Saving ", n_out, " timesteps"
+    FMT2, trim(info)
+
     if (restartstep > 0) then
-      FMT2, "Writing restart every ", restartstep, " timesteps, or ", (restartstep * dt) / 3600., "hours"
+      write(info, "(a,i5,a,f6.2,a)") "Writing restart every ", restartstep, " timesteps, or ", (restartstep * dt) / 3600., " hours"
+      FMT2, trim(info)
     else if (restartstep == 0) then
       FMT2, "Writing restart at end of simulation"
     end if

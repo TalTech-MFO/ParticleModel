@@ -208,12 +208,9 @@ contains
     character(len=*), intent(in) :: name
     real(rk), intent(in) :: fill_value
 
-    dbghead(ctor_field_dynamic_3d)
-
     call ctor_field_dynamic_3d%init(3, [n1, n2, n3], name, fill_value=fill_value)
     call ctor_field_dynamic_3d%set_timestep(timestep)
 
-    dbgtail(ctor_field_dynamic_3d)
     return
   end function ctor_field_dynamic_3d
   !===========================================
@@ -455,7 +452,6 @@ contains
       call this%set_missing_value(fill_value)
     end if
 
-    dbgtail(field :: init_3d_static)
     return
   end subroutine init_3d_static
   !===========================================
@@ -694,8 +690,6 @@ contains
     else
       res = this%interpolate(x)
     end if
-
-    res = this%interpolate(x)
 
     return
   end function get_value_xy_1d_static
@@ -1014,7 +1008,7 @@ contains
     select type (this)
     type is (t_field_static_1d)
       call throw_error("field :: slice_static", "Cannot slice a 1D field.")
-      
+
     type is (t_field_static_2d)
       if (size(idx_other) /= 1) then
         call throw_error("field :: slice_static", "Invalid number of indices.")
@@ -1052,7 +1046,7 @@ contains
     real(rk), intent(in) :: t
     integer, intent(in) :: idx_other(:)
     real(rk), dimension(:), intent(out) :: res
-    real(rk), dimension(:), allocatable :: f1, f2
+    real(rk), dimension(size(res)) :: f1, f2
 
     select type (this)
     type is (t_field_dynamic_1d)

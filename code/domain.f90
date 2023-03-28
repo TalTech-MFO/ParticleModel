@@ -68,8 +68,6 @@ contains
     real(rk) :: dx_min, dx_max, dy_min, dy_max
     real(rk) :: dlon_min, dlon_max, dlat_min, dlat_max
 
-    dbghead(domain :: domain)
-
     d%nx = nx
     d%ny = ny
 
@@ -216,7 +214,6 @@ contains
 
     FMT2, "Finished init_domain"
 
-    dbgtail(domain :: domain)
     return
   end function ctor_domain
   !===========================================
@@ -234,12 +231,7 @@ contains
     integer AIM_INTENT :: idx
     logical :: out_of_bounds
 
-    dbghead(domain :: get_lons_idx)
-
-    debug(idx)
-
     res = this%lons%get(idx, out_of_bounds)
-    debug(res); debug(out_of_bounds)
     if (out_of_bounds) then
       if (idx < 1) then
         res = this%lboundx
@@ -251,9 +243,6 @@ contains
       else
         res = this%uboundx
 #ifdef SNAP_TO_BOUNDS
-        ERROR, "Snapping to bound"
-        ERROR, "res = ", res
-        ERROR, "idx = ", idx
         idx = this%nx
 #else
         call throw_error("domain :: get_lons_idx", "Index out of bounds! (Greater than nx)")
@@ -331,7 +320,6 @@ contains
   real(rk) function get_lats_interp(this, idx) result(res)
     class(t_domain), intent(in) :: this
     real(rk) AIM_INTENT :: idx
-    real(rk) :: i0, i1
     logical :: out_of_bounds
 
     res = this%lats%get(idx, out_of_bounds)
@@ -390,10 +378,6 @@ contains
   function get_bathymetry_idx_interp(this, x, y) result(res)
     class(t_domain), intent(in) :: this
     real(rk), intent(in)        :: x, y ! Indices, not coordinates!
-    real(rk)                    :: x1, x2, &
-                                   y1, y2, &
-                                   c11, c12, c21, c22
-    integer                     :: i, j
     real(rk)                    :: res
     logical :: out_of_bounds
 
@@ -435,7 +419,7 @@ contains
   !===========================================
   subroutine lonlat2xy(this, lon, lat, x, y)
     !---------------------------------------------
-    ! Convert longitude and latitude to x and y coordinates 
+    ! Convert longitude and latitude to x and y coordinates
     ! using lboundx and lboundy as the origin
     !---------------------------------------------
     class(t_domain), intent(in) :: this
@@ -450,7 +434,7 @@ contains
   !===========================================
   subroutine xy2lonlat(this, x, y, lon, lat)
     !---------------------------------------------
-    ! Convert x and y coordinates to longitude and latitude 
+    ! Convert x and y coordinates to longitude and latitude
     ! using lboundx and lboundy as the origin
     !---------------------------------------------
     class(t_domain), intent(in) :: this
@@ -472,30 +456,23 @@ contains
     integer :: it
     real(rk) :: irt
 
-    dbghead(domain :: get_index)
-
     select case (dim)
     case (1)
-      DBG, "dim = 1"
       ! Longitude
       ! Check bounds
       if (loc < this%lboundx) then
-        DBG, "loc < this%lboundx"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = 1
         if (present(ir)) ir = ONE
-        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lon is less than lboundx")
 #endif
       end if
       if (loc > this%uboundx) then
-        DBG, "loc > this%uboundx"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = this%nx
         if (present(ir)) ir = real(this%nx, rk)
-        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lon is greater than uboundx")
@@ -503,38 +480,29 @@ contains
       end if
       ! Get indices
       it = minloc(abs(this%lons%get() - loc), dim=1)
-      debug(it)
       if (this%lons%get(it) > loc) then
-        DBG, "this%lons(it) > loc"
         it = it - 1
-        debug(it)
       end if
       ! Get real indices
       irt = it + (loc - this%lons%get(it)) / (this%lons%get(it + 1) - this%lons%get(it))
-      debug(irt)
       if (present(i)) i = it
       if (present(ir)) ir = irt
     case (2)
-      DBG, "dim = 2"
       ! Latitude
       ! Check bounds
       if (loc < this%lboundy) then
-        DBG, "loc < this%lboundy"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = 1
         if (present(ir)) ir = ONE
-        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lat is less than lboundy")
 #endif
       end if
       if (loc > this%uboundy) then
-        DBG, "loc > this%uboundy"
 #ifdef SNAP_TO_BOUNDS
         if (present(i)) i = this%ny
         if (present(ir)) ir = real(this%ny, rk)
-        dbgtail(domain :: get_index)
         return
 #else
         call throw_error("domain :: get_index", "lat is greater than uboundy")
@@ -542,22 +510,17 @@ contains
       end if
       ! Get indices
       it = minloc(abs(this%lats%get() - loc), dim=1)
-      debug(it)
       if (this%lats%get(it) > loc) then
-        DBG, "this%lats(it) > loc"
         it = it - 1
-        debug(it)
       end if
       ! Get real indices
       irt = it + (loc - this%lats%get(it)) / (this%lats%get(it + 1) - this%lats%get(it))
-      debug(irt)
       if (present(i)) i = it
       if (present(ir)) ir = irt
     case default
       call throw_error("domain :: get_index", "dim must be 1 or 2")
     end select
 
-    dbgtail(domain :: get_index)
     return
   end subroutine get_index
 

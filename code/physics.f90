@@ -136,8 +136,8 @@ contains
       v1h = fieldset%get("V", time, i1, jh); 
     end if
 
-    dx = fieldset%domain%dx%get(i,j)
-    dy = fieldset%domain%dy%get(i,j)
+    dx = fieldset%domain%dx%get(i, j)
+    dy = fieldset%domain%dy%get(i, j)
 
     dudx = (u1h - u0h) / dx; 
     dudy = (uh1 - uh0) / dy; 
