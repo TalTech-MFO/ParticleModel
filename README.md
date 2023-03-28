@@ -6,7 +6,7 @@
 Download the code using:
 
 ```
-git clone https://github.com/rix71/particle_model.git
+git clone https://github.com/rix71/ParticleModel.git
 ```
 
 Or do a recursive clone, if you want the postprocessor as well.
@@ -18,7 +18,7 @@ Or do a recursive clone, if you want the postprocessor as well.
 Installing is as easy as:
 
 ```
-cd particle_model/code
+cd ParticleModel/code
 make
 ```
 
