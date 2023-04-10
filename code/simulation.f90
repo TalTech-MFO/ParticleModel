@@ -6,8 +6,7 @@ module mod_simulation
   ! It contains the main (time) loop and handles the setup of the
   ! simulation and the output.
   !----------------------------------------------------------------
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_datetime
   use mod_particleset
   use mod_fieldset

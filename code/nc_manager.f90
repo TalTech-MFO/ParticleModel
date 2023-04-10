@@ -4,7 +4,7 @@ module nc_manager
   !----------------------------------------------------------------
   ! Some useful netCDF subroutines
   !----------------------------------------------------------------
-  use mod_precdefs
+  use mod_common
   use netcdf
   implicit none
   private

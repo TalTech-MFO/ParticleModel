@@ -9,9 +9,8 @@ module mod_physics
   ! TODO:
   ! - drag
   !----------------------------------------------------------------
-  use mod_errors
+  use mod_common
   use mod_interp
-  use mod_precdefs
   use mod_params
   use field_vars, only: has_bottom_stress, density_method, viscosity_method, zax_style
   use time_vars, only: dt
@@ -136,8 +135,8 @@ contains
       v1h = fieldset%get("V", time, i1, jh); 
     end if
 
-    dx = fieldset%domain%dx%get(i,j)
-    dy = fieldset%domain%dy%get(i,j)
+    dx = fieldset%domain%dx%get(i, j)
+    dy = fieldset%domain%dy%get(i, j)
 
     dudx = (u1h - u0h) / dx; 
     dudy = (uh1 - uh0) / dy; 

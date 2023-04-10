@@ -4,8 +4,7 @@ module mod_datetime
   ! Module for handling dates
   ! Timezones are not taken into account, assumes UTC
   !----------------------------------------------------------------
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use nc_manager, only: nc_get_timeunit, nc_read_time_val
   implicit none
   private

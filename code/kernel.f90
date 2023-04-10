@@ -3,13 +3,11 @@ module mod_kernel
   !----------------------------------------------------------------
   ! [module description]
   !----------------------------------------------------------------
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_statevector
   use mod_fieldset
-  use mod_process_list
-  ! use mod_advection
-  ! use mod_diffusion ! And so on
+  use mod_advection
+  use mod_diffusion ! And so on
   implicit none
   private
   !===================================================
@@ -18,7 +16,8 @@ module mod_kernel
   !---------------------------------------------
   type :: t_kernel
     private
-    type(t_process_list) :: processes
+    class(t_advection) :: advection
+    class(t_diffusion) :: diffusion
   contains
     procedure :: init
     procedure :: run
@@ -38,7 +37,7 @@ contains
   !===========================================
   function run(this, sv, fieldset, time, dt) result(res)
     class(t_kernel), intent(in) :: this
-    real(rk), intent(in) :: sv(:)
+    type(statevector), intent(in) :: sv(:)
     class(t_fieldset), intent(in) :: fieldset
     real(rk), intent(in) :: time
     real(rk), intent(in) :: dt

@@ -88,12 +88,15 @@ module field_vars
   integer                   :: zax_style, &                    ! Depth values (1) or layer thickness (2)
                                zax_direction, &                ! > 0 - positive up, < 0 - positive down
                                density_method, &               ! 0 - default density, 1 - has variable, 2 - calculate from T/S
-                               viscosity_method                ! 0 - default viscosity, 1 - has variable, 2 - calculate from T/S
+                               viscosity_method, &             ! 0 - default viscosity, 1 - has variable, 2 - calculate from T/S
+                               vertical_diffusion_method       ! 0 - default, 1 - has variable
   character(len=LEN_CHAR_S) :: uvarname, vvarname, wvarname, & ! Names of the variables. Necessary?
                                zaxvarname, elevvarname, &
                                rhovarname, tempvarname, &
                                saltvarname, viscvarname, &
-                               taubxvarname, taubyvarname
+                               taubxvarname, taubyvarname, &
+                               vdiffvarname                    ! Vertical diffusivity
+
   character(len=LEN_CHAR_S) :: xdimname, ydimname, zdimname    ! Names of the dimensions.
   character(len=LEN_CHAR_L) :: file_prefix, file_suffix        ! What comes before and after the proc. number?
   character(len=LEN_CHAR_L) :: GETMPATH, PMAPFILE              ! Path to GETM output and processor map

@@ -6,15 +6,15 @@ module mod_initialise
   ! This module is used to read namelists, initialise variables,
   ! allocate arrays etc.
   !----------------------------------------------------------------
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use run_params, only: runid, dry_run, restart, restart_path, nmlfilename
   use mod_fieldset
-  use field_vars, only: GETMPATH, PMAPFILE, has_subdomains, density_method, viscosity_method, has_bottom_stress, &
+  use field_vars, only: GETMPATH, PMAPFILE, has_subdomains, density_method, viscosity_method, vertical_diffusion_method, has_bottom_stress, &
                         file_prefix, file_suffix, &
                         xdimname, ydimname, zdimname, &
                         uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
-                        tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, zax_style, zax_direction, fieldset
+                        tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, &
+                        vdiffvarname, zax_style, zax_direction, fieldset
   use mod_domain_vars, only: TOPOFILE, bathyvarname, lonvarname, latvarname, nx, ny, domain
   use mod_domain
   use nc_manager, only: nc_read_time_val, nc_var_exists
@@ -68,7 +68,7 @@ contains
       file_prefix, file_suffix, &
       xdimname, ydimname, zdimname, &
       uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
-      tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, zax_style, zax_direction
+      tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, vdiffvarname, zax_style, zax_direction
 
     FMT1, "======== Init namelist ========"
 
@@ -135,6 +135,7 @@ contains
     FMT3, var2val_char(viscvarname)
     FMT3, var2val_char(taubxvarname)
     FMT3, var2val_char(taubyvarname)
+    FMT3, var2val_char(vdiffvarname)
     FMT3, var2val(zax_style)
     FMT3, var2val(zax_direction)
 
@@ -325,7 +326,16 @@ contains
         call throw_warning("initialise :: init_fieldset", "Could not find bottom stress ('"//trim(taubxvarname)//"'/'"//trim(taubyvarname)//"') in "//trim(filename))
       end if
     end if
-
+    !---------------------------------------------
+    if (do_diffusion) then
+      if (nc_var_exists(trim(filename), trim(vdiffvarname))) then
+        call fieldset%add_field("KV", vdiffvarname)
+        vertical_diffusion_method = DIFF_VARIABLE
+      else
+        call throw_warning("initialise :: init_fieldset", "Could not find vertical diffusivity ('"//trim(vdiffvarname)//"') in "//trim(filename)//". Using default value.")
+        vertical_diffusion_method = DIFF_DEFAULT
+      end if
+    end if
     !---------------------------------------------
     if (do_biofouling) then
       call init_biofouling(fieldset)

@@ -7,8 +7,7 @@ module mod_solver
   ! The solver's run method runs the particle loop and calls the kernel
   ! which computes the derivatives of the particle variables.
   !----------------------------------------------------------------
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_kernel
   use mod_particle
   use mod_statevector
@@ -92,7 +91,7 @@ contains
     do ipart = 1, sv%nparticles
       k1%state(ipart, :) = sv%state(ipart, :) + this%kernel%run(sv%state(ipart, :), fieldset, time, dt) * dt
       sv%state(ipart, :) = sv%state(ipart, :) + &
-                           0.5_rk * (k1%state(ipart, :) + this%kernel%run(k1%state(ipart, :), fieldset, time, dt) * dt)
+                           0.5_rk * (k1%state(ipart, :) + this%kernel%run(k1%state(ipart, :), fieldset, time, dt) * dt) ! ! This is not correct
     end do
 
     call k1%clean()

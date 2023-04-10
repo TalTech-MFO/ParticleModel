@@ -7,8 +7,7 @@ module mod_field
   ! The dynamic field changes in time (e.g. the velocity or temperature field) and
   ! therefore defines two arrays: one for the current time step and one for the and one for the next time step.
   !----------------------------------------------------------------
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_variable, only: t_variable
   use mod_interp
   implicit none
@@ -1005,8 +1004,6 @@ contains
     integer, intent(in) :: idx_other(:)
     real(rk), dimension(:), intent(out) :: res
 
-
-
     select type (this)
     type is (t_field_static_1d)
       call throw_error("field :: slice_static", "Cannot slice a 1D field.")
@@ -1049,8 +1046,6 @@ contains
     integer, intent(in) :: idx_other(:)
     real(rk), dimension(:), intent(out) :: res
     real(rk), dimension(size(res)) :: f1, f2
-
-
 
     select type (this)
     type is (t_field_dynamic_1d)

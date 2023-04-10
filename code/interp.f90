@@ -3,7 +3,7 @@ module mod_interp
   !----------------------------------------------------------------
   ! This module contains different interpolation methods
   !----------------------------------------------------------------
-  use mod_precdefs
+  use mod_common
   implicit none
   private
   !===================================================

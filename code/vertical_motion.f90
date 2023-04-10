@@ -4,8 +4,7 @@ module mod_vertical_motion
   !----------------------------------------------------------------
   ! Calculates the particles' vertical velocity
   !----------------------------------------------------------------
-  use mod_errors
-  use mod_precdefs
+  use mod_common
   use mod_params
   use time_vars, only: dt
   use mod_physics, only: seawater_density, seawater_viscosity, bottom_friction_velocity

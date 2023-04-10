@@ -5,11 +5,7 @@ module mod_loop
   !----------------------------------------------------------------
   ! Main loop
   !----------------------------------------------------------------
-#ifdef USE_OMP
-  use omp_lib
-#endif
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_params, only: do_velocity, do_diffusion, do_biofouling, run_3d, advection_method
   use mod_advection
   use mod_vertical_motion

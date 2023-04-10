@@ -3,7 +3,7 @@ module mod_variable
   !----------------------------------------------------------------
   ! This is a base class for all field data types.
   !----------------------------------------------------------------
-  use mod_precdefs
+  use mod_common
   implicit none
   private
   !===================================================

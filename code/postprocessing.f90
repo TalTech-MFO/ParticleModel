@@ -1,8 +1,7 @@
 #include "cppdefs.h"
 module mod_postprocessing
 #ifdef POSTPROCESS
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_particle_vars, only: particles, runparts
   use mod_domain_vars, only: domain
   ! use mod_domain, only: get_indices2d

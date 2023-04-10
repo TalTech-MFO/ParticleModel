@@ -2,8 +2,7 @@
 #include "field.h"
 #include "file.h"
 module mod_fieldset
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_datetime
   use nc_manager
   use mod_variable, only: t_variable
@@ -770,7 +769,12 @@ contains
     integer                         :: ik
     real(rk)                        :: ikr
 
+    dbghead(fieldset :: get_indices_vertical)
+
+    debug(t); debug(z); debug(i); debug(j)
+
     dep = this%domain%get_bathymetry(i, j)
+    debug(dep)
 
     ! If the bathymetry value is negative, that means that this (i,j) point is on land
     ! and we set the index to the top of the water column and return
@@ -780,6 +784,7 @@ contains
 #ifdef DEBUG
       call throw_warning("fieldset :: get_indices_vertical", "Particle on ground")
 #endif
+      dbgtail(fieldset :: get_indices_vertical)
       return
     end if
 
@@ -801,6 +806,7 @@ contains
 #ifdef DEBUG
       call throw_warning("fieldset :: get_indices_vertical", "Out of bounds (z > top)") ! Better error message
 #endif
+      dbgtail(fieldset :: get_indices_vertical)
       return
     end if
 
@@ -810,6 +816,7 @@ contains
 #ifdef DEBUG
       call throw_warning("fieldset :: get_indices_vertical", "Out of bounds (z < bottom)") ! Better error message
 #endif
+      dbgtail(fieldset :: get_indices_vertical)
       return
     end if
 
@@ -833,6 +840,7 @@ contains
       kr = ikr
     end if
 
+    dbgtail(fieldset :: get_indices_vertical)
     return
   end subroutine get_indices_vertical
   !===========================================

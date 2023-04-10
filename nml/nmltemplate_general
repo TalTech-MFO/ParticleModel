@@ -127,6 +127,7 @@
 ! viscvarname    - [char] Name of viscosity variable in GETM data
 ! taubxvarname   - [char] Name of bottom stress x-component in GETM data
 ! taubyvarname   - [char] Name of bottom stress y-component in GETM data
+! vdiffvarname   - [char] Name of vertical diffusivity in GETM data
 ! zax_style      - [int]  Vertical coordinate values 
 !                         0 - depth values (static)
 !                         1 - depth values (adaptive)
@@ -154,9 +155,10 @@
   rhovarname = 'rho'
   tempvarname = 'temp'
   saltvarname = 'salt'
-  viscvarname = 'nuh'
+  viscvarname = 'num'
   taubxvarname = 'taubx'
   taubyvarname = 'tauby'
+  vdiffvarname = 'nuh'
   zax_style = 1
   zax_direction = 1
 /

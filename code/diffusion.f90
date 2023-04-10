@@ -2,24 +2,45 @@
 #error SMAGORINSKY_FULL_FIELD not implemented
 #endif
 #include "cppdefs.h"
+#include "field.h"
 #include "particle.h"
 module mod_diffusion
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_params
-  use time_vars, only: dt
-  use mod_particle, only: t_particle
+  use field_vars, only: vertical_diffusion_method
+  use mod_process
   use mod_fieldset, only: t_fieldset
   use mod_physics, only: normal_random, Ah_Smagorinsky
   implicit none
   private
   !===================================================
   !---------------------------------------------
-  public :: diffuse
+  public :: t_diffusion
+  !---------------------------------------------
+  type, extends(t_process) :: t_diffusion
+    private
+    logical :: is_3d
+  contains
+    procedure :: init => init_diffusion
+    procedure :: run => run_diffusion
+  end type t_diffusion
   !---------------------------------------------
   !===================================================
 contains
-!===========================================
+  !===========================================
+  subroutine init_diffusion(this)
+    class(t_diffusion), intent(inout) :: this
+  end subroutine init_diffusion
+  !===========================================
+  function run_diffusion(this, sv, fieldset, time, dt) result(res)
+    class(t_diffusion), intent(in) :: this
+    type(t_fieldset), intent(in)   :: fieldset
+    real(rk), intent(in)           :: time, dt
+    real(rk), intent(in)           :: sv(:)
+    real(rk) :: res(size(sv))
+
+  end function run_diffusion
+  !===========================================
   subroutine diffuse_2D(p, fieldset, time)
 
     type(t_particle), intent(inout) :: p
@@ -30,8 +51,8 @@ contains
     real(rk)                        :: x0, x1, &
                                        y0, y1
 
-    i = p%ir1
-    j = p%jr1
+    i = p%ir0
+    j = p%jr0
 
     call fieldset%domain%lonlat2xy(p%lon1, p%lat1, x0, y0)
 
@@ -61,9 +82,9 @@ contains
                                        y0, y1, &
                                        z0, z1
 
-    i = p%ir1
-    j = p%jr1
-    k = p%kr1
+    i = p%ir0
+    j = p%jr0
+    k = p%kr0
 
     call fieldset%domain%lonlat2xy(p%lon1, p%lat1, x0, y0)
     z0 = p%depth1
@@ -73,7 +94,14 @@ contains
 #elif defined(SMAGORINSKY_FULL_FIELD)
     Ah = get_Ah_Smagorinsky_full_field(fieldset, i, j, k)
 #endif
-    kv = diffusion_vert_const
+    select case (vertical_diffusion_method)
+    case (DIFF_VARIABLE)
+      kv = fieldset%get("KV", time, i, j, k)
+    case (DIFF_DEFAULT)
+      kv = diffusion_vert_const
+    case default
+      call throw_error("diffusion :: diffuse_3D", "Unknown vertical diffusion method")
+    end select
 
     x1 = x0 + normal_random() * sqrt(2 * Ah * dt)
     y1 = y0 + normal_random() * sqrt(2 * Ah * dt)

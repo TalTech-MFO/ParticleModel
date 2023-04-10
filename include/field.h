@@ -16,6 +16,10 @@
 #define VISC_VARIABLE 1
 #define VISC_CALC 2
 !--------------
+! diffusivity_method
+#define DIFF_DEFAULT 0
+#define DIFF_VARIABLE 1
+!--------------
 ! seamask
 #define DOM_LAND 1
 #define DOM_SEA 2

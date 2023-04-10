@@ -1,5 +1,6 @@
 #include "cppdefs.h"
 #include "ompdefs.h"
+#include "particle.h"
 module mod_particleset
   !----------------------------------------------------------------
   ! Particle set module.
@@ -8,8 +9,7 @@ module mod_particleset
   ! The particle set class handles releasing new particles and gathering
   ! information to and from the particles.
   !----------------------------------------------------------------
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_particle
   use mod_statevector
   implicit none
@@ -20,9 +20,8 @@ module mod_particleset
   !---------------------------------------------
   type t_particleset
     private
-    type(t_particle), pointer :: particles(:)
-    type(t_statevector) :: sv
-    integer :: nvars
+    type(t_particle), pointer        :: particles(:)
+    type(t_statevector), allocatable :: sv(:)
   contains
     private
     procedure :: init
@@ -30,6 +29,8 @@ module mod_particleset
     procedure :: to_statevector
     procedure :: from_statevector
   end type t_particleset
+  !---------------------------------------------
+  integer :: ierr
   !===================================================
 contains
   !===========================================
@@ -44,28 +45,25 @@ contains
   subroutine to_statevector(this, sv)
     class(t_particleset), intent(inout) :: this
     class(t_statevector), intent(inout) :: sv
-    integer :: ipart, sv_index
-    integer :: active_particles
+    integer :: ipart, nvars
 
-    ! Allocate sv
-    active_particles = 0
-    START_OMP_DO reduction(+:active_particles)
-    do ipart = 1, size(this%particles)
-      if (this%particles(ipart)%is_active) active_particles = active_particles + 1
-    end do
-    END_OMP_DO
-
-    allocate (this%sv%trc(active_particles), this%sv%state(active_particles, this%nvars))
-    this%sv%nparticles = active_particles
-    this%sv%nvars = this%nvars
+    allocate (this%sv(size(this%particles)), stat=ierr)
+    if (ierr /= 0) then
+      call throw_error("particleset :: to_statevector", "Could not allocate statevector array")
+    end if
 
     ! TODO: OpenMP parallel loop
-    sv_index = 0
     do ipart = 1, size(this%particles)
-      if (.not. this%particles(ipart)%is_active) cycle
-      sv_index = sv_index + 1
-      this%sv%trc(sv_index)%ptr => this%particles(ipart)
-      this%sv%state(sv_index, :) = this%particles(ipart)%get_state_array()
+      nvars = this%particles(ipart)%get_nvars()
+      allocate (this%sv(ipart)%current(nvars), stat=ierr)
+      if (ierr /= 0) then
+        call throw_error("particleset :: to_statevector", "Could not allocate statevector current array")
+      end if
+      this%sv(ipart)%trc%ptr => this%particles(ipart)
+      this%sv(ipart)%current(:) = this%particles(ipart)%get_state_array()
+      this%sv(ipart)%active = this%particles(ipart)%st%is_active
+      this%sv(ipart)%state = this%particles(ipart)%st%state
+      this%sv(ipart)%nvars = nvars
     end do
 
     return
@@ -73,8 +71,11 @@ contains
   !===========================================
   subroutine from_statevector(this)
     class(t_particleset), intent(in) :: this
+    integer :: ipart
 
-    call this%sv%to_tracer()
+    do ipart = 1, size(this%sv)
+      call this%sv(ipart)%to_tracer()
+    end do
 
     return
   end subroutine from_statevector

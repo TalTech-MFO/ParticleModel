@@ -1,8 +1,7 @@
 #include "cppdefs.h"
 #include "output.h"
 program main
-  use mod_errors
-  use mod_precdefs
+  use mod_common
 #ifdef WRITESTDOUT
   use run_params, only: runid
 #endif

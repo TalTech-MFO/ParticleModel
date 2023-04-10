@@ -92,7 +92,10 @@ FFLAGS += $(NETCDF_INC)
 LIBS = ${NETCDF_LIB} -lnetcdff -lnetcdf
 
 SRCS = precdefs.f90 errors.f90 \
-       utils.f90 interp.f90 nc_manager.f90 variable.f90 field.f90 list.f90 \
+       utils.f90 \
+	   common_modules.f90 \
+	   vector.f90 \
+	   interp.f90 nc_manager.f90 variable.f90 field.f90 list.f90 \
 	   domain.f90 datetime.f90 \
 	   fieldset.f90 \
 	   vars.f90 \

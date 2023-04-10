@@ -1,7 +1,6 @@
 #include "cppdefs.h"
 module mod_list
-  use mod_precdefs
-  use mod_errors
+  use mod_common
   use mod_variable, only: t_variable
   use mod_field
   implicit none
