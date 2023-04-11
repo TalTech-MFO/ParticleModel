@@ -4,7 +4,7 @@ module mod_kernel
   ! [module description]
   !----------------------------------------------------------------
   use mod_common
-  use mod_statevector
+  use mod_statevector, only: t_statearray
   use mod_fieldset
   use mod_advection
   use mod_diffusion ! And so on
@@ -35,18 +35,18 @@ contains
     return
   end subroutine init
   !===========================================
-  function run(this, sv, fieldset, time, dt) result(res)
+  function run(this, sa, fieldset, time, dt) result(res)
     class(t_kernel), intent(in) :: this
-    type(statevector), intent(in) :: sv(:)
+    type(t_statearray), intent(in) :: sa
     class(t_fieldset), intent(in) :: fieldset
     real(rk), intent(in) :: time
     real(rk), intent(in) :: dt
-    real(rk) :: res(size(sv))
+    real(rk) :: res(size(sa%current))
 
     res = ZERO
 
     ! TODO: Processes could have an interface with their name, so that we don't have to call run() on each of them
-    res = this%advection%run(sv, fieldset, time, dt) + this%diffusion%run(sv, fieldset, time, dt)
+    res = this%advection%run(sa, fieldset, time, dt) + this%diffusion%run(sa, fieldset, time, dt)
 
     return
   end function run

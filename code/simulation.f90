@@ -53,9 +53,9 @@ contains
     do while (this%current_time < this%end_time)
       ! Update fields
       ! Release particles
-      call particleset%to_statevector()
+      call particleset%tracer_to_statevector()
       call this%solver%run(particleset%sv)
-      call particleset%from_statevector()
+      call particleset%statevector_to_tracer()
       ! Update time
       call this%current_time%update(this%dt)
       ! Write output

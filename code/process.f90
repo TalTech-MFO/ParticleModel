@@ -13,6 +13,7 @@ module mod_process
   !----------------------------------------------------------------
   use mod_common
   use mod_fieldset
+  use mod_statevector, only: t_statearray
   implicit none
   private
   !===================================================
@@ -30,13 +31,13 @@ module mod_process
       import t_process
       class(t_process), intent(inout) :: this
     end subroutine i_init
-    function i_run(this, sv, fieldset, time, dt) result(res)
-      import t_process, t_fieldset, rk
+    function i_run(this, sa, fieldset, time, dt) result(res)
+      import t_process, t_fieldset, t_statearray, rk
       class(t_process), intent(in) :: this
       type(t_fieldset), intent(in) :: fieldset
       real(rk), intent(in) :: time, dt
-      real(rk), intent(in) :: sv(:)
-      real(rk) :: res(size(sv))
+      type(t_statearray), intent(in) :: sa
+      real(rk) :: res(size(sa%current))
     end function i_run
   end interface
   !===================================================

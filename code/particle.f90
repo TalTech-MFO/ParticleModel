@@ -62,7 +62,7 @@ module mod_particle
     procedure         :: check_age
     procedure, public :: check_depth
     procedure, public :: print_info
-    procedure, public :: get_nvars
+    procedure, public :: get_num_vars
     procedure, public :: volume
     procedure, public :: surface_area
   end type t_particle
@@ -189,19 +189,19 @@ contains
 
   end function surface_area
   !===========================================
-  pure integer function get_nvars(this)
+  pure integer function get_num_vars(this)
     class(t_particle), intent(in) :: this
 
-    get_nvars = 10
+    get_num_vars = 10
 
-  end function get_nvars
+  end function get_num_vars
   !===========================================
   function get_state_array(this) result(res)
     class(t_particle), intent(in) :: this
-    ! real(rk), allocatable :: res(:)
-    real(rk) :: res(this%get_nvars())
+    real(rk), allocatable :: res(:)
+    ! real(rk) :: res(this%get_num_vars())
 
-    ! allocate (res(this%get_nvars()))
+    allocate (res(this%get_num_vars()))
     res(1) = this%st%pos%x
     res(2) = this%st%pos%y
     res(3) = this%st%pos%z
@@ -218,7 +218,8 @@ contains
   !===========================================
   subroutine set_state_array(this, sa)
     class(t_particle), intent(inout) :: this
-    real(rk), intent(in) :: sa(this%get_nvars())
+    ! real(rk), intent(in) :: sa(this%get_num_vars())
+    real(rk), intent(in) :: sa(:)
 
     this%st%pos%x = sa(1)
     this%st%pos%y = sa(2)
@@ -332,71 +333,71 @@ contains
     integer                          :: i, j
     integer                          :: seamask_val
 
-    i = this%i1
-    j = this%j1
+!     i = this%i1
+!     j = this%j1
 
-    if (i < 1 .or. i > fieldset%domain%nx .or. &
-        j < 1 .or. j > fieldset%domain%ny) then
-      this%st%is_active = .false.
-      this%st%state = ST_BOUNDARY
-      return
-    end if
+!     if (i < 1 .or. i > fieldset%domain%nx .or. &
+!         j < 1 .or. j > fieldset%domain%ny) then
+!       this%st%is_active = .false.
+!       this%st%state = ST_BOUNDARY
+!       return
+!     end if
 
-    seamask_val = fieldset%domain%get_seamask(i=i, j=j)
+!     seamask_val = fieldset%domain%get_seamask(i=i, j=j)
 
-    select case (seamask_val)
-    case (DOM_BEACH)
-      this%st%time_on_beach = this%st%time_on_beach + dt
-      !---------------------------------------------
-      ! Change state if beaching time exceeded or on boundary
-#ifndef PARTICLE_BEACH_IMMEDIATELY
-      if (this%st%time_on_beach >= this%par%beaching_time) then
-#endif
-        if (this%par%kill_beached) this%st%is_active = .false.
-        this%st%state = ST_BEACHED
-#ifndef PARTICLE_BEACH_IMMEDIATELY
-      end if
-#endif
+!     select case (seamask_val)
+!     case (DOM_BEACH)
+!       this%st%time_on_beach = this%st%time_on_beach + dt
+!       !---------------------------------------------
+!       ! Change state if beaching time exceeded or on boundary
+! #ifndef PARTICLE_BEACH_IMMEDIATELY
+!       if (this%st%time_on_beach >= this%par%beaching_time) then
+! #endif
+!         if (this%par%kill_beached) this%st%is_active = .false.
+!         this%st%state = ST_BEACHED
+! #ifndef PARTICLE_BEACH_IMMEDIATELY
+!       end if
+! #endif
 
-    case (DOM_LAND)
-! #if defined PARTICLE_BOUNCE ! ! These two methods are deleted and should never be rewritten again.
-!       call this%bounce(fieldset)
-! #elif defined PARTICLE_REDIRECT
-!       call this%redirect(fieldset)
-#if defined PARTICLE_BEACH_IMMEDIATELY
-      if (this%kill_beached) this%is_active = .false.
-      this%state = ST_BEACHED
-#else
-      this%i1 = this%i0
-      this%j1 = this%j0
-      this%k1 = this%k0
-      this%ir1 = this%ir0
-      this%jr1 = this%jr0
-      this%kr1 = this%kr0
-      this%lon1 = this%lon0
-      this%lat1 = this%lat0
-      this%depth1 = this%depth0
-#endif
+!     case (DOM_LAND)
+! ! #if defined PARTICLE_BOUNCE ! ! These two methods are deleted and should never be rewritten again.
+! !       call this%bounce(fieldset)
+! ! #elif defined PARTICLE_REDIRECT
+! !       call this%redirect(fieldset)
+! #if defined PARTICLE_BEACH_IMMEDIATELY
+!       if (this%kill_beached) this%is_active = .false.
+!       this%state = ST_BEACHED
+! #else
+!       this%i1 = this%i0
+!       this%j1 = this%j0
+!       this%k1 = this%k0
+!       this%ir1 = this%ir0
+!       this%jr1 = this%jr0
+!       this%kr1 = this%kr0
+!       this%lon1 = this%lon0
+!       this%lat1 = this%lat0
+!       this%depth1 = this%depth0
+! #endif
 
-      !---------------------------------------------
-      ! The bounce can happen only in the beach zone, so add to time on beach
-      this%time_on_beach = this%time_on_beach + dt
-      !---------------------------------------------
-      ! Change state if beaching time exceeded or on boundary
-      if (this%time_on_beach >= this%beaching_time) then
-        if (this%kill_beached) this%is_active = .false.
-        this%state = ST_BEACHED
-      end if
+!       !---------------------------------------------
+!       ! The bounce can happen only in the beach zone, so add to time on beach
+!       this%time_on_beach = this%time_on_beach + dt
+!       !---------------------------------------------
+!       ! Change state if beaching time exceeded or on boundary
+!       if (this%time_on_beach >= this%beaching_time) then
+!         if (this%kill_beached) this%is_active = .false.
+!         this%state = ST_BEACHED
+!       end if
 
-    case (DOM_SEA)
-      this%time_on_beach = ZERO
+!     case (DOM_SEA)
+!       this%time_on_beach = ZERO
 
-    case (DOM_BOUNDARY)
-      if (this%kill_boundary) this%is_active = .false.
-      this%state = ST_BOUNDARY
-    end select
+!     case (DOM_BOUNDARY)
+!       if (this%kill_boundary) this%is_active = .false.
+!       this%state = ST_BOUNDARY
+!     end select
 
-    if (run_3d) call this%check_depth(fieldset, time)
+!     if (run_3d) call this%check_depth(fieldset, time)
 
     return
   end subroutine check_boundaries

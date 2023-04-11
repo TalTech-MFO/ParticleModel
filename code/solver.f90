@@ -69,8 +69,8 @@ contains
     integer :: ipart
 
     ! TODO: OpenMP parallel loop
-    do ipart = 1, sv%nparticles
-      sv%state(ipart, :) = sv%state(ipart, :) + this%kernel%run(sv%state(ipart, :), fieldset, time, dt) * dt
+    do ipart = 1, size(sv)
+      sv%sa(ipart)%current(:) = sv%sa(ipart)%current(:) + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
     end do
 
     return
@@ -83,15 +83,14 @@ contains
     real(rk), intent(in) :: time
     real(rk), intent(in) :: dt
     integer :: ipart
-    type(t_statevector) :: k1
+    type(t_statevector), allocatable :: k1
 
     call k1%copy(sv)
 
     ! TODO: OpenMP parallel loop
-    do ipart = 1, sv%nparticles
-      k1%state(ipart, :) = sv%state(ipart, :) + this%kernel%run(sv%state(ipart, :), fieldset, time, dt) * dt
-      sv%state(ipart, :) = sv%state(ipart, :) + &
-                           0.5_rk * (k1%state(ipart, :) + this%kernel%run(k1%state(ipart, :), fieldset, time, dt) * dt) ! ! This is not correct
+    do ipart = 1, size(sv)
+      k1%sa(ipart)%current(:) = sv%sa(ipart)%current(:) + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
+      sv%sa(ipart)%current(:) = sv%sa(ipart)%current(:) + (k1%sa(ipart)%current(:) + this%kernel%run(k1%sa(ipart), fieldset, time + dt, dt)) * (0.5_rk *dt) ! ! Make sure this is correct
     end do
 
     call k1%clean()

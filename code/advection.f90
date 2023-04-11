@@ -4,6 +4,7 @@ module mod_advection
   use mod_common
   use mod_process
   use mod_fieldset, only: t_fieldset
+  use mod_statevector, only: t_statearray
   implicit none
   private
   !===================================================
@@ -25,12 +26,12 @@ contains
     class(t_advection), intent(inout) :: this
   end subroutine init_advection
   !===========================================
-  function run_advection(this, sv, fieldset, time, dt) result(res)
+  function run_advection(this, sa, fieldset, time, dt) result(res)
     class(t_advection), intent(in) :: this
     type(t_fieldset), intent(in)   :: fieldset
     real(rk), intent(in)           :: time, dt
-    real(rk), intent(in)           :: sv(:)
-    real(rk) :: res(size(sv))
+    type(t_statearray), intent(in) :: sa
+    real(rk) :: res(size(sa%current))
     real(rk) :: u, v, ug, vg
 
     res = ZERO
