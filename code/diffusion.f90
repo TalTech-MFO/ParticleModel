@@ -1,6 +1,3 @@
-#ifdef SMAGORINSKY_FULL_FIELD
-#error SMAGORINSKY_FULL_FIELD not implemented
-#endif
 #include "cppdefs.h"
 #include "particle.h"
 #include "field.h"
@@ -9,9 +6,11 @@ module mod_diffusion
   use mod_errors
   use mod_params
   use time_vars, only: dt
+  use field_vars, only: vertical_diffusion_method
   use mod_particle, only: t_particle
   use mod_fieldset, only: t_fieldset
-  use mod_physics, only: normal_random, Ah_Smagorinsky
+  use mod_physics, only: Ah_Smagorinsky
+  use mod_random, only: normal_random
   implicit none
   private
   !===================================================
@@ -37,7 +36,7 @@ contains
     call fieldset%domain%lonlat2xy(p%lon1, p%lat1, x0, y0)
 
 #if defined(SMAGORINSKY_INTERP_UV)
-    Ah = Ah_Smagorinsky(fieldset, time, i, j)
+    Ah = max(Ah_Smagorinsky(fieldset, time, i, j), diffusion_hor_const)
 #elif defined(SMAGORINSKY_FULL_FIELD)
     Ah = get_Ah_Smagorinsky_full_field(fieldset, i, j)
 #endif
@@ -72,11 +71,27 @@ contains
     call fieldset%domain%lonlat2xy(p%lon1, p%lat1, x0, y0)
     z0 = p%depth1
 
-#if defined(SMAGORINSKY_INTERP_UV)
-    Ah = Ah_Smagorinsky(fieldset, time, i, j, k)
-#elif defined(SMAGORINSKY_FULL_FIELD)
-    Ah = get_Ah_Smagorinsky_full_field(fieldset, i, j, k)
+    debug(p%lon1); debug(p%lat1); debug(p%depth1)
+    debug(x0); debug(y0); debug(z0)
+
+#ifdef DEBUG
+    if (k > fieldset%nz) then
+      ERROR, "diffusion :: diffuse_3D ", "k >= fieldset%nz"
+      ERROR, "diffusion :: diffuse_3D ", "k = ", k
+      ERROR, i, j, k
+      ERROR, p%lon0, p%lat0, p%depth0
+      ERROR, p%lon1, p%lat1, p%depth1
+      ERROR, x0, y0, z0
+      call throw_error("diffusion :: diffuse_3D", "k >= fieldset%nz")
+    end if
 #endif
+
+    ! Calculates the Smagorinsky diffusion coefficient for the horizontal
+    ! mixing. If the diffusion coefficient is smaller than the minimum
+    ! diffusion coefficient, the minimum diffusion coefficient is used
+    ! (diffusion_hor_const set in namelist).
+    Ah = max(Ah_Smagorinsky(fieldset, time, i, j, k), diffusion_hor_const)
+
     select case (vertical_diffusion_method)
     case (DIFF_VARIABLE)
       kv = fieldset%get("KV", time, i, j, k)
@@ -96,10 +111,24 @@ contains
     z1 = z0
 #endif
 
+    debug(x1); debug(y1); debug(z1)
+
+#ifdef DEBUG
+    if ((z1 < -150._rk) .or. (z1 > 15._rk)) then
+      ERROR, "diffusion :: diffuse_3D", "z1 = ", z1
+      ERROR, "diffusion :: diffuse_3D", "z0 = ", z0
+      ERROR, "diffusion :: diffuse_3D", "kv = ", kv
+      ERROR, "diffusion :: diffuse_3D", "Ah = ", Ah
+      ERROR, "diffusion :: diffuse_3D", "vertical_diffusion_method = ", vertical_diffusion_method
+      call throw_error("diffusion :: diffuse_3D", "z1 < -150._rk .or. z1 > 15._rk")
+    end if
+#endif
+
     call fieldset%domain%xy2lonlat(x1, y1, p%lon1, p%lat1)
     call fieldset%search_indices(t=time, x=p%lon1, y=p%lat1, z=z1, i=p%i1, j=p%j1, k=p%k1, ir=p%ir1, jr=p%jr1, kr=p%kr1)
     p%depth1 = z1
 
+    dbgtail(diffusion :: diffuse_3D)
     return
   end subroutine diffuse_3D
   !===========================================
