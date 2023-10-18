@@ -71,6 +71,9 @@ contains
 
     call fieldset%search_indices(t=time, x=p%lon1, y=p%lat1, z=p%depth1, k=p%k1, kr=p%kr1)
 
+    ! Check if the particle has settled, if so, set its' state to ST_BOTTOM
+    call p%check_depth(fieldset, time)
+
     dbgtail(vertical_motion :: vertical_velocity)
     return
   end subroutine vertical_velocity
