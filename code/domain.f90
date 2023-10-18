@@ -27,7 +27,9 @@ module mod_domain
     type(t_field_static_2d), public :: dlon, dlat, dx, dy
   contains
     private
-    procedure, public :: lonlat2xy, xy2lonlat
+    procedure, public :: lonlat2xy
+    generic, public   :: xy2lonlat => cart2geo, m2geo
+    procedure         :: cart2geo, m2geo
     procedure, public :: get_index
     generic, public   :: get_bathymetry => get_bathymetry_whole, get_bathymetry_idx, get_bathymetry_idx_interp
     procedure         :: get_bathymetry_whole, get_bathymetry_idx, get_bathymetry_idx_interp
@@ -432,7 +434,7 @@ contains
     return
   end subroutine lonlat2xy
   !===========================================
-  subroutine xy2lonlat(this, x, y, lon, lat)
+  subroutine cart2geo(this, x, y, lon, lat)
     !---------------------------------------------
     ! Convert x and y coordinates to longitude and latitude
     ! using lboundx and lboundy as the origin
@@ -445,7 +447,23 @@ contains
     lon = x / ((radius_earth * pi / 180._rk) * cos(lat * pi / 180._rk)) + this%lboundx
 
     return
-  end subroutine xy2lonlat
+  end subroutine cart2geo
+  !===========================================
+  subroutine m2geo(this, mx, my, lat, gx, gy)
+    !---------------------------------------------
+    ! Convert components in meters to degrees.
+    ! For example, m/s to degrees/s
+    !---------------------------------------------
+    class(t_domain), intent(in) :: this
+    real(rk), intent(in) :: mx, my
+    real(rk), intent(in) :: lat
+    real(rk), intent(out) :: gx, gy
+
+    gx = mx / ((radius_earth * pi / 180._rk) * cos(lat * pi / 180._rk))
+    gy = my / (radius_earth * pi / 180._rk)
+
+    return
+  end subroutine m2geo
   !===========================================
   subroutine get_index(this, loc, dim, i, ir)
     class(t_domain), intent(in) :: this
