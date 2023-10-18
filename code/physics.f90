@@ -21,7 +21,7 @@ module mod_physics
   !===================================================
   !---------------------------------------------
   public :: seawater_viscosity, seawater_density, diffusion_brown, &
-            light_intensity, Ah_Smagorinsky, bottom_friction_velocity, normal_random
+            light_intensity, Ah_Smagorinsky, bottom_friction_velocity
   !---------------------------------------------
   ! integer :: ierr ! Unused for now
   !===================================================
@@ -107,6 +107,11 @@ contains
     real(rk)                      :: i0, j0, i1, j1, ih, jh, kh
     real(rk)                      :: uh0, vh0, uh1, vh1, u0h, v0h, u1h, v1h
     real(rk)                      :: dudx, dudy, dvdx, dvdy
+
+    if (Cm_smagorinsky <= ZERO) then
+      Ah_s = ZERO
+      return
+    end if
 
     i0 = real(i, rk); 
     j0 = real(j, rk); 
@@ -288,19 +293,4 @@ contains
 
     return
   end function seawater_density_from_temp_and_salt
-  !===========================================
-  real(rk) function normal_random() result(r)
-    !---------------------------------------------
-    ! Get normally distributed random number from
-    ! uniform distribution given by 'call random_number'
-    !---------------------------------------------
-    real(rk) :: r1, r2
-
-    call random_number(r1); r1 = 1 - r1
-    call random_number(r2); r2 = 1 - r2
-
-    r = sqrt(-2 * log(r1)) * cos(2 * pi * r2)
-
-    return
-  end function normal_random
 end module mod_physics

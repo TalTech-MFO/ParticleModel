@@ -30,6 +30,7 @@ module mod_initialise
                         diffusion_hor_const, diffusion_vert_const, run_3d, &
                         Cm_smagorinsky, resuspension_coeff, resuspension_threshold, roughness_height
   use mod_output, only: init_output
+  use mod_random, only: init_rng
   implicit none
   private
   !===================================================
@@ -366,6 +367,7 @@ contains
     call init_fieldset                 ! init.f90
     call init_particles                ! init.f90
     call init_output                   ! output.f90
+    call init_rng                      ! random.f90
 
   end subroutine init_model
 
