@@ -1,4 +1,4 @@
-Updated: Tue Mar 28 13:54:02 EEST 2023
+Updated: Wed Oct 18 14:55:12 EEST 2023
 code/datetime.f90-68-  type(t_datetime) function ctor_datetime(date_str) result(res)
 code/datetime.f90-69-    !---------------------------------------------
 code/datetime.f90-70-    ! Constructor for datetime
@@ -31,23 +31,23 @@ code/datetime.f90-293-    !---------------------------------------------
 code/datetime.f90-294-    type(t_datetime), intent(in) :: start, end
 code/datetime.f90-295-    real(rk)                     :: start_num, end_num
 --
-code/domain.f90-50-    !---------------------------------------------
-code/domain.f90-51-    ! Initialize the global longitude/latitude
-code/domain.f90-52-    ! and seamask
-code/domain.f90:53:    ! TODO: dx, dy, dlon, dlat should be 2D arrays
-code/domain.f90:54:    ! TODO: Should get dimensions from netCDF file
-code/domain.f90:55:    ! TODO: Should check topo file for seamask (with the same values for land, sea etc.)
-code/domain.f90-56-    !---------------------------------------------
-code/domain.f90-57-#ifdef DEBUG
-code/domain.f90-58-    use nc_manager
+code/domain.f90-52-    !---------------------------------------------
+code/domain.f90-53-    ! Initialize the global longitude/latitude
+code/domain.f90-54-    ! and seamask
+code/domain.f90:55:    ! TODO: dx, dy, dlon, dlat should be 2D arrays
+code/domain.f90:56:    ! TODO: Should get dimensions from netCDF file
+code/domain.f90:57:    ! TODO: Should check topo file for seamask (with the same values for land, sea etc.)
+code/domain.f90-58-    !---------------------------------------------
+code/domain.f90-59-#ifdef DEBUG
+code/domain.f90-60-    use nc_manager
 --
-code/domain.f90-143-    call d%depdata%init(n1=nx, n2=ny, name=bathy, value=depdata, units="meters")
-code/domain.f90-144-
-code/domain.f90-145-    !---------------------------------------------
-code/domain.f90:146:    ! TODO: Seamask could have another value (4) to represent boundaries.
-code/domain.f90-147-    !       Boundary should have a thickness!
-code/domain.f90-148-    FMT2, "Making seamask"
-code/domain.f90-149-
+code/domain.f90-145-    call d%depdata%init(n1=nx, n2=ny, name=bathy, value=depdata, units="meters")
+code/domain.f90-146-
+code/domain.f90-147-    !---------------------------------------------
+code/domain.f90:148:    ! TODO: Seamask could have another value (4) to represent boundaries.
+code/domain.f90-149-    !       Boundary should have a thickness!
+code/domain.f90-150-    FMT2, "Making seamask"
+code/domain.f90-151-
 --
 code/fieldset.f90-217-    end do
 code/fieldset.f90-218-
@@ -92,21 +92,21 @@ code/fieldset.f90-1550-          ! overwritten. Maybe add a "to be modified" fla
 code/fieldset.f90-1551-          ! kind of use of the where(u_mask == ...) statement
 code/fieldset.f90-1552-          ! ! WAIT... I might be wrong...
 --
-code/init.f90-183-  subroutine init_fieldset
-code/init.f90-184-    !---------------------------------------------
-code/init.f90-185-    ! Initialise the fieldset
-code/init.f90:186:    ! TODO: Fix memory calculation
-code/init.f90-187-    !---------------------------------------------
-code/init.f90-188-    character(len=LEN_CHAR_L)              :: initPath
-code/init.f90-189-    character(len=LEN_CHAR_L)              :: filename
+code/init.f90-184-  subroutine init_fieldset
+code/init.f90-185-    !---------------------------------------------
+code/init.f90-186-    ! Initialise the fieldset
+code/init.f90:187:    ! TODO: Fix memory calculation
+code/init.f90-188-    !---------------------------------------------
+code/init.f90-189-    character(len=LEN_CHAR_L)              :: initPath
+code/init.f90-190-    character(len=LEN_CHAR_L)              :: filename
 --
-code/init.f90-270-
-code/init.f90-271-      if (nc_var_exists(trim(filename), trim(elevvarname))) then
-code/init.f90-272-        call fieldset%add_field("ELEV", elevvarname)
-code/init.f90:273:        ! TODO: set_elev for faster lookup
-code/init.f90-274-      end if
-code/init.f90-275-    end if
-code/init.f90-276-    !---------------------------------------------
+code/init.f90-271-
+code/init.f90-272-      if (nc_var_exists(trim(filename), trim(elevvarname))) then
+code/init.f90-273-        call fieldset%add_field("ELEV", elevvarname)
+code/init.f90:274:        ! TODO: set_elev for faster lookup
+code/init.f90-275-      end if
+code/init.f90-276-    end if
+code/init.f90-277-    !---------------------------------------------
 --
 code/interp.f90-57-    !      c_k
 code/interp.f90-58-    !        1 - bottom point along y-axis
@@ -132,13 +132,13 @@ code/output.f90-628-    ! ---------------------------------------
 code/output.f90-629-    integer, intent(in) :: nwrite
 code/output.f90-630-    character(len=LEN_CHAR_L) :: restart_file
 --
-code/particle.f90-282-  !===========================================
-code/particle.f90-283-  subroutine check_depth(this, fieldset, t)
-code/particle.f90-284-    !---------------------------------------------
-code/particle.f90:285:    ! TODO: Interpolation for bathymetry?
-code/particle.f90-286-    !---------------------------------------------
-code/particle.f90-287-
-code/particle.f90-288-    class(t_particle), intent(inout) :: this
+code/particle.f90-285-  !===========================================
+code/particle.f90-286-  subroutine check_depth(this, fieldset, t)
+code/particle.f90-287-    !---------------------------------------------
+code/particle.f90:288:    ! TODO: Interpolation for bathymetry?
+code/particle.f90-289-    !---------------------------------------------
+code/particle.f90-290-
+code/particle.f90-291-    class(t_particle), intent(inout) :: this
 --
 code/physics.f90-6-module mod_physics
 code/physics.f90-7-  !----------------------------------------------------------------
@@ -148,13 +148,13 @@ code/physics.f90-10-  ! - drag
 code/physics.f90-11-  !----------------------------------------------------------------
 code/physics.f90-12-  use mod_errors
 --
-code/physics.f90-211-  real(rk) function seawater_viscosity_from_temp_and_salt(T, S)
-code/physics.f90-212-    !---------------------------------------------
-code/physics.f90-213-    ! Dynamic viscosity of seawater
-code/physics.f90:214:    ! TODO: Add proper reference
-code/physics.f90-215-    ! https://ittc.info/media/4048/75-02-01-03.pdf
-code/physics.f90-216-    !---------------------------------------------
-code/physics.f90-217-    real(rk), intent(in) :: T, S
+code/physics.f90-216-  real(rk) function seawater_viscosity_from_temp_and_salt(T, S)
+code/physics.f90-217-    !---------------------------------------------
+code/physics.f90-218-    ! Dynamic viscosity of seawater
+code/physics.f90:219:    ! TODO: Add proper reference
+code/physics.f90-220-    ! https://ittc.info/media/4048/75-02-01-03.pdf
+code/physics.f90-221-    !---------------------------------------------
+code/physics.f90-222-    real(rk), intent(in) :: T, S
 --
 code/vars.f90-17-module mod_params
 code/vars.f90-18-  !----------------------------------------------------------------
@@ -172,18 +172,18 @@ code/vars.f90-88-  integer                   :: zax_style, &                    
 code/vars.f90-89-                               zax_direction, &                ! > 0 - positive up, < 0 - positive down
 code/vars.f90-90-                               density_method, &               ! 0 - default density, 1 - has variable, 2 - calculate from T/S
 --
-code/vertical_motion.f90-79-    !---------------------------------------------
-code/vertical_motion.f90-80-    ! Gives a settled particle vertical velocity if
-code/vertical_motion.f90-81-    ! the bottom friction velocity exceeds a certain threshold
-code/vertical_motion.f90:82:    ! TODO: currently, resuspension_threshold is a namelist parameter,
-code/vertical_motion.f90-83-    ! perhaps should be calculated as the particles' critical flow velocity.
-code/vertical_motion.f90-84-    ! Ref: Erosion Behavior of Different Microplastic Particles in Comparison to Natural Sediments
-code/vertical_motion.f90-85-    !       Kryss Waldschläger and Holger Schüttrumpf
+code/vertical_motion.f90-82-    !---------------------------------------------
+code/vertical_motion.f90-83-    ! Gives a settled particle vertical velocity if
+code/vertical_motion.f90-84-    ! the bottom friction velocity exceeds a certain threshold
+code/vertical_motion.f90:85:    ! TODO: currently, resuspension_threshold is a namelist parameter,
+code/vertical_motion.f90-86-    ! perhaps should be calculated as the particles' critical flow velocity.
+code/vertical_motion.f90-87-    ! Ref: Erosion Behavior of Different Microplastic Particles in Comparison to Natural Sediments
+code/vertical_motion.f90-88-    !       Kryss Waldschläger and Holger Schüttrumpf
 --
-code/vertical_motion.f90-124-  real(rk) function buoyancy(p, fieldset, time, delta_rho, kin_visc) result(res)
-code/vertical_motion.f90-125-    !---------------------------------------------
-code/vertical_motion.f90-126-    ! Calculate the vertical velocity due to buoyancy
-code/vertical_motion.f90:127:    ! TODO: Which timestep should be used? (original or t + dt?)
+code/vertical_motion.f90-127-  real(rk) function buoyancy(p, fieldset, time, delta_rho, kin_visc) result(res)
 code/vertical_motion.f90-128-    !---------------------------------------------
-code/vertical_motion.f90-129-    type(t_particle), intent(in)    :: p
-code/vertical_motion.f90-130-    type(t_fieldset), intent(in)    :: fieldset
+code/vertical_motion.f90-129-    ! Calculate the vertical velocity due to buoyancy
+code/vertical_motion.f90:130:    ! TODO: Which timestep should be used? (original or t + dt?)
+code/vertical_motion.f90-131-    !---------------------------------------------
+code/vertical_motion.f90-132-    type(t_particle), intent(in)    :: p
+code/vertical_motion.f90-133-    type(t_fieldset), intent(in)    :: fieldset

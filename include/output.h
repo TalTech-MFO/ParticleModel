@@ -19,6 +19,8 @@
 #define OUT_ID
 #define OUT_VELOCITY
 #define OUT_SETTLING_VELOCITY
+#define OUT_DENSITY
+#define OUT_DENSITY_PLASTIC
 #define OUT_AGE
 #define OUT_H_BIOFILM
 #define OUT_GROWTH_BIOFILM
