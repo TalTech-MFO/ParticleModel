@@ -35,12 +35,25 @@ module mod_statevector
   type t_statevector
     type(t_statearray), allocatable :: sa(:)
   contains
+    procedure :: get_size => get_size_statevector
     procedure :: to_tracer => to_tracer_statevector
     procedure :: copy => copy_statevector
     procedure :: clean => clean_statevector
   end type t_statevector
   !===================================================
 contains
+  !===========================================
+  pure function get_size_statevector(this)
+    !-------------------------------------------
+    ! Get the size of the state vector.
+    !-------------------------------------------
+    class(t_statevector), intent(in) :: this
+    integer :: get_size_statevector
+
+    get_size_statevector = size(this%sa)
+
+    return
+  end function get_size_statevector
   !===========================================
   subroutine to_tracer_statearray(this)
     !-------------------------------------------
@@ -66,7 +79,7 @@ contains
     class(t_statevector), intent(in) :: this
     integer :: i
 
-    do i = 1, size(this%sa)
+    do i = 1, this%get_size()
       call this%sa(i)%to_tracer()
     end do
 
@@ -111,8 +124,8 @@ contains
       deallocate (this%sa)
     end if
 
-    allocate (this%sa(size(source%sa)))
-    do i = 1, size(source%sa)
+    allocate (this%sa(source%get_size()))
+    do i = 1, source%get_size()
       call this%sa(i)%copy(source%sa(i))
     end do
 
@@ -145,7 +158,7 @@ contains
     integer :: i
 
     if (allocated(this%sa)) then
-      do i = 1, size(this%sa)
+      do i = 1, this%get_size()
         call this%sa(i)%clean()
       end do
       deallocate (this%sa)

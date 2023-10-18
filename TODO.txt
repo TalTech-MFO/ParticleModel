@@ -1,4 +1,12 @@
-Updated: Mon Apr 10 18:45:47 EEST 2023
+Updated: Sun Apr 23 02:33:56 EEST 2023
+code/advection.f90-37-
+code/advection.f90-38-    res = ZERO
+code/advection.f90-39-
+code/advection.f90:40:    ! TODO: Preprocessor definition ST_SUSPENDED to (global) simulation parameter (e.g., sim_global%particle_state%suspended)
+code/advection.f90-41-    if (sa%state /= ST_SUSPENDED) return
+code/advection.f90-42-
+code/advection.f90-43-    u = fieldset%get("U", time, sa%current(1), sa%current(2), sa%current(3))
+--
 code/datetime.f90-67-  type(t_datetime) function ctor_datetime(date_str) result(res)
 code/datetime.f90-68-    !---------------------------------------------
 code/datetime.f90-69-    ! Constructor for datetime
@@ -68,21 +76,21 @@ code/fieldset.f90-356-    !       would not depend on ls getting it right.
 code/fieldset.f90-357-    !---------------------------------------------
 code/fieldset.f90-358-    class(t_fieldset), intent(inout) :: this
 --
-code/fieldset.f90-756-    ! adaptive vertical (sigma) coordinates change in time
-code/fieldset.f90-757-    ! and need to be read from the netcdf file. The domain class
-code/fieldset.f90-758-    ! does not handle this.
-code/fieldset.f90:759:    ! TODO: zax direction should be taken into account
-code/fieldset.f90-760-    !---------------------------------------------
-code/fieldset.f90-761-    class(t_fieldset), intent(in)   :: this
-code/fieldset.f90-762-    real(rk), intent(in)            :: t, z
+code/fieldset.f90-774-    ! adaptive vertical (sigma) coordinates change in time
+code/fieldset.f90-775-    ! and need to be read from the netcdf file. The domain class
+code/fieldset.f90-776-    ! does not handle this.
+code/fieldset.f90:777:    ! TODO: zax direction should be taken into account
+code/fieldset.f90-778-    !---------------------------------------------
+code/fieldset.f90-779-    class(t_fieldset), intent(in)   :: this
+code/fieldset.f90-780-    real(rk), intent(in)            :: t, z
 --
-code/fieldset.f90-940-  !===========================================
-code/fieldset.f90-941-  subroutine find_directory(this, date, dir_name, dir_idx)
-code/fieldset.f90-942-    !---------------------------------------------
-code/fieldset.f90:943:    ! TODO: might have to check if nc files start at time
-code/fieldset.f90-944-    ! [date] 00:00:00 or [date] 00:00:10 (at least in this particular example)
-code/fieldset.f90-945-    ! Compare every time?
-code/fieldset.f90-946-    ! Some validity check would be nice
+code/fieldset.f90-958-  !===========================================
+code/fieldset.f90-959-  subroutine find_directory(this, date, dir_name, dir_idx)
+code/fieldset.f90-960-    !---------------------------------------------
+code/fieldset.f90:961:    ! TODO: might have to check if nc files start at time
+code/fieldset.f90-962-    ! [date] 00:00:00 or [date] 00:00:10 (at least in this particular example)
+code/fieldset.f90-963-    ! Compare every time?
+code/fieldset.f90-964-    ! Some validity check would be nice
 --
 code/init.f90-182-  subroutine init_fieldset
 code/init.f90-183-    !---------------------------------------------
@@ -112,9 +120,38 @@ code/kernel.f90-45-
 code/kernel.f90-46-    res = ZERO
 code/kernel.f90-47-
 code/kernel.f90:48:    ! TODO: Processes could have an interface with their name, so that we don't have to call run() on each of them
-code/kernel.f90-49-    res = this%advection%run(sv, fieldset, time, dt) + this%diffusion%run(sv, fieldset, time, dt)
+code/kernel.f90-49-    res = this%advection(sa, fieldset, time, dt) + this%diffusion(sa, fieldset, time, dt)
 code/kernel.f90-50-
 code/kernel.f90-51-    return
+--
+code/kernel.f90-63-
+code/kernel.f90-64-    advection = ZERO
+code/kernel.f90-65-
+code/kernel.f90:66:    ! TODO: Preprocessor definition ST_SUSPENDED to (global) simulation parameter (e.g., sim_global%particle_state%suspended)
+code/kernel.f90-67-    if (sa%state /= ST_SUSPENDED) return
+code/kernel.f90-68-
+code/kernel.f90-69-    u = fieldset%get("U", time, sa%current(1), sa%current(2), sa%current(3))
+--
+code/kernel.f90-76-    advection(2) = vg
+code/kernel.f90-77-    advection(5) = v
+code/kernel.f90-78-
+code/kernel.f90:79:    ! TODO: this%is_3d to global setting (sim_global%run_defs%is_3d or something...)
+code/kernel.f90-80-    if (this%is_3d) then
+code/kernel.f90-81-      advection(3) = fieldset%get("W", time, sa%current(1), sa%current(2), sa%current(3))
+code/kernel.f90-82-      advection(6) = advection(3)
+--
+code/kernel.f90-114-    diffusion(2) = vg
+code/kernel.f90-115-
+code/kernel.f90-116-    if (this%is_3d) then
+code/kernel.f90:117:      ! TODO: this%vertical_diffusion_method to global setting (sim_global%run_defs%vertical_diffusion_method or something...)
+code/kernel.f90-118-      select case (this%vertical_diffusion_method)
+code/kernel.f90-119-      case (DIFF_VARIABLE)
+code/kernel.f90-120-        kv = fieldset%get("KV", time, sa%current(1), sa%current(2), sa%current(3))
+code/kernel.f90-121-      case (DIFF_DEFAULT)
+code/kernel.f90:122:        ! TODO: diffusion_vert_const to global setting (sim_global%sim_const%diffusion_vert_const or something...)
+code/kernel.f90-123-        kv = diffusion_vert_const
+code/kernel.f90-124-      end select
+code/kernel.f90-125-      w_rand = utils%normal_random()
 --
 code/main.f90-6-  use run_params, only: runid
 code/main.f90-7-#endif
@@ -132,29 +169,29 @@ code/output.f90-624-    ! ---------------------------------------
 code/output.f90-625-    integer, intent(in) :: nwrite
 code/output.f90-626-    character(len=LEN_CHAR_L) :: restart_file
 --
-code/particle.f90-288-  !===========================================
-code/particle.f90-289-  subroutine check_depth(this, fieldset, t)
-code/particle.f90-290-    !---------------------------------------------
-code/particle.f90:291:    ! TODO: Interpolation for bathymetry?
-code/particle.f90-292-    !---------------------------------------------
-code/particle.f90-293-
-code/particle.f90-294-    class(t_particle), intent(inout) :: this
+code/particle.f90-289-  !===========================================
+code/particle.f90-290-  subroutine check_depth(this, fieldset, t)
+code/particle.f90-291-    !---------------------------------------------
+code/particle.f90:292:    ! TODO: Interpolation for bathymetry?
+code/particle.f90-293-    !---------------------------------------------
+code/particle.f90-294-
+code/particle.f90-295-    class(t_particle), intent(inout) :: this
 --
-code/particle.f90-305-    end if
-code/particle.f90-306-#endif
-code/particle.f90-307-
-code/particle.f90:308:    ! ! TODO: Interpolation for bathymetry?
-code/particle.f90-309-    ! dep = fieldset%domain%get_bathymetry(this%i1, this%j1)
-code/particle.f90-310-
-code/particle.f90-311-    ! The particle is past the bottom
+code/particle.f90-306-    end if
+code/particle.f90-307-#endif
+code/particle.f90-308-
+code/particle.f90:309:    ! ! TODO: Interpolation for bathymetry?
+code/particle.f90-310-    ! dep = fieldset%domain%get_bathymetry(this%i1, this%j1)
+code/particle.f90-311-
+code/particle.f90-312-    ! The particle is past the bottom
 --
-code/particleset.f90-52-      call throw_error("particleset :: to_statevector", "Could not allocate statevector array")
+code/particleset.f90-52-      call throw_error("particleset :: tracer_to_statevector", "Could not allocate statevector array")
 code/particleset.f90-53-    end if
 code/particleset.f90-54-
-code/particleset.f90:55:    ! TODO: OpenMP parallel loop
+code/particleset.f90:55:    ! TODO: OpenMP
 code/particleset.f90-56-    do ipart = 1, size(this%particles)
-code/particleset.f90-57-      nvars = this%particles(ipart)%get_nvars()
-code/particleset.f90-58-      allocate (this%sv(ipart)%current(nvars), stat=ierr)
+code/particleset.f90-57-      nvars = this%particles(ipart)%get_num_vars()
+code/particleset.f90-58-      allocate (this%sv%sa(ipart)%current(nvars), stat=ierr)
 --
 code/physics.f90-6-module mod_physics
 code/physics.f90-7-  !----------------------------------------------------------------
@@ -176,17 +213,17 @@ code/solver.f90-68-    real(rk), intent(in) :: dt
 code/solver.f90-69-    integer :: ipart
 code/solver.f90-70-
 code/solver.f90:71:    ! TODO: OpenMP parallel loop
-code/solver.f90-72-    do ipart = 1, sv%nparticles
-code/solver.f90-73-      sv%state(ipart, :) = sv%state(ipart, :) + this%kernel%run(sv%state(ipart, :), fieldset, time, dt) * dt
+code/solver.f90-72-    do ipart = 1, sv%get_size()
+code/solver.f90-73-      sv%sa(ipart)%current = sv%sa(ipart)%current + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
 code/solver.f90-74-    end do
 --
 code/solver.f90-87-
 code/solver.f90-88-    call k1%copy(sv)
 code/solver.f90-89-
 code/solver.f90:90:    ! TODO: OpenMP parallel loop
-code/solver.f90-91-    do ipart = 1, sv%nparticles
-code/solver.f90-92-      k1%state(ipart, :) = sv%state(ipart, :) + this%kernel%run(sv%state(ipart, :), fieldset, time, dt) * dt
-code/solver.f90-93-      sv%state(ipart, :) = sv%state(ipart, :) + &
+code/solver.f90-91-    do ipart = 1, sv%get_size()
+code/solver.f90-92-      k1%sa(ipart)%current = sv%sa(ipart)%current + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
+code/solver.f90-93-      sv%sa(ipart)%current = sv%sa(ipart)%current + (k1%sa(ipart)%current + this%kernel%run(k1%sa(ipart), fieldset, time + dt, dt)) * (0.5_rk *dt) ! ! Make sure this is correct
 --
 code/vars.f90-17-module mod_params
 code/vars.f90-18-  !----------------------------------------------------------------

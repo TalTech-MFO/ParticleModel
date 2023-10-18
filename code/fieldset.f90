@@ -100,8 +100,8 @@ module mod_fieldset
     procedure, public :: sealevel
     generic, public   :: set => set_value_key, set_value_idx
     procedure         :: set_value_key, set_value_idx
-    generic, public   :: get => get_value_key_real_idx, get_value_key_int_idx, get_value_idx_real_idx, get_value_idx_int_idx
-    procedure         :: get_value_key_real_idx, get_value_key_int_idx, get_value_idx_real_idx, get_value_idx_int_idx
+    generic, public   :: get => get_value_key_coord, get_value_key_int_idx, get_value_idx_coord, get_value_idx_int_idx
+    procedure         :: get_value_key_coord, get_value_key_int_idx, get_value_idx_coord, get_value_idx_int_idx
     procedure         :: read_field
     procedure         :: read_field_subdomains
     procedure, public :: update
@@ -580,42 +580,45 @@ contains
   !===========================================
   ! GETTERS
   !===========================================
-  real(rk) function get_value_key_real_idx(this, field_name, t, i, j, k) result(res)
+  real(rk) function get_value_key_coord(this, field_name, t, lon, lat, depth) result(res)
     !---------------------------------------------
-    ! Get the value of the field at the given time and position
+    ! Get the value of the field at the given time and position (lon, lat, depth).
+    ! Search field by name.
     ! The field can be 2D or 3D, but has to be dynamic (has time dimension).
     !---------------------------------------------
     class(t_fieldset), intent(in)   :: this
     character(*), intent(in)        :: field_name
-    real(rk), intent(in)            :: t, i, j
-    real(rk), optional, intent(in)  :: k
+    real(rk), intent(in)            :: t, lon, lat, depth
     class(t_variable), pointer      :: p_field
+    real(rk) :: ir, jr, kr
 
     res = ZERO
 
     call this%fields%get_item(field_name, p_field)
 
+    call this%search_indices(t=t, x=lon, y=lat, z=depth, ir=ir, jr=jr, kr=kr)
+
     select type (p_field)
     type is (t_field_dynamic_2d)
-      res = p_field%get(t=t, x=i, y=j)
+      res = p_field%get(t=t, x=ir, y=jr)
+
     type is (t_field_dynamic_3d)
-      if (.not. present(k)) then
-        if (this%nz == 1) then
-          res = p_field%get(t=t, x=i, y=j, z=ONE)
-        else
-          call throw_error("fieldset :: get_value_key_real_idx", "k index is missing for 3D field")
-        end if
-      else
-        res = p_field%get(t=t, x=i, y=j, z=k)
-      end if
+      res = p_field%get(t=t, x=ir, y=jr, z=kr) ! ! Maybe kr should be set to ONE if nz == 1
+
     class default
-      call throw_error("fieldset :: get_value_key_real_idx", "The field must be dynamic 2D or 3D field")
+      call throw_error("fieldset :: get_value_key_coord", "The field must be dynamic 2D or 3D field")
     end select
 
     return
-  end function get_value_key_real_idx
+  end function get_value_key_coord
   !===========================================
   real(rk) function get_value_key_int_idx(this, field_name, t, i, j, k) result(res)
+    !---------------------------------------------
+    ! Get the value of the field at the given time and position (i, j [, k]).
+    ! i, j, k are integer indices.
+    ! Search field by name.
+    ! The field can be 2D or 3D, but has to be dynamic (has time dimension).
+    !---------------------------------------------
     class(t_fieldset), intent(in)  :: this
     character(*), intent(in)       :: field_name
     real(rk), intent(in)           :: t
@@ -630,6 +633,7 @@ contains
     select type (p_field)
     type is (t_field_dynamic_2d)
       res = p_field%get(t=t, i=i, j=j)
+
     type is (t_field_dynamic_3d)
       if (.not. present(k)) then
         if (this%nz == 1) then
@@ -640,6 +644,7 @@ contains
       else
         res = p_field%get(t=t, i=i, j=j, k=k)
       end if
+
     class default
       call throw_error("fieldset :: get_value_key_int_idx", "The field must be dynamic 2D or 3D field")
     end select
@@ -647,38 +652,44 @@ contains
     return
   end function get_value_key_int_idx
   !===========================================
-  real(rk) function get_value_idx_real_idx(this, idx, t, i, j, k) result(res)
+  real(rk) function get_value_idx_coord(this, idx, t, lon, lat, depth) result(res)
+    !---------------------------------------------
+    ! Get the value of the field at the given time and position (lon, lat, depth).
+    ! Search field by index.
+    ! The field can be 2D or 3D, but has to be dynamic (has time dimension).
+    !---------------------------------------------
     class(t_fieldset), intent(in)  :: this
     integer, intent(in)            :: idx
-    real(rk), intent(in)           :: t, i, j
-    real(rk), optional, intent(in) :: k
+    real(rk), intent(in)           :: t, lon, lat, depth
     class(t_variable), pointer     :: p_field
+    real(rk) :: ir, jr, kr
 
     res = ZERO
 
     call this%fields%get_item(idx, p_field)
+    call this%search_indices(t=t, x=lon, y=lat, z=depth, ir=ir, jr=jr, kr=kr)
 
     select type (p_field)
     type is (t_field_dynamic_2d)
-      res = p_field%get(t=t, x=i, y=j)
+      res = p_field%get(t=t, x=ir, y=jr)
+
     type is (t_field_dynamic_3d)
-      if (.not. present(k)) then
-        if (this%nz == 1) then
-          res = p_field%get(t=t, x=i, y=j, z=ONE)
-        else
-          call throw_error("fieldset :: get_value_idx_real_idx", "k index is missing for 3D field")
-        end if
-      else
-        res = p_field%get(t=t, x=i, y=j, z=k)
-      end if
+      res = p_field%get(t=t, x=ir, y=jr, z=kr) ! ! Maybe kr should be set to ONE if nz == 1
+
     class default
-      call throw_error("fieldset :: get_value_idx_real_idx", "The field must be dynamic 2D or 3D field")
+      call throw_error("fieldset :: get_value_idx_coord", "The field must be dynamic 2D or 3D field")
     end select
 
     return
-  end function get_value_idx_real_idx
+  end function get_value_idx_coord
   !===========================================
   real(rk) function get_value_idx_int_idx(this, idx, t, i, j, k) result(res)
+    !---------------------------------------------
+    ! Get the value of the field at the given time and position (i, j [, k]).
+    ! i, j, k are integer indices.
+    ! Search field by index.
+    ! The field can be 2D or 3D, but has to be dynamic (has time dimension).
+    !---------------------------------------------
     class(t_fieldset), intent(in)  :: this
     integer, intent(in)            :: idx
     real(rk), intent(in)           :: t
@@ -711,6 +722,9 @@ contains
   end function get_value_idx_int_idx
   !===========================================
   integer function get_field_index(this, field_name) result(res)
+    !---------------------------------------------
+    ! Get the index of the field in the linked list with the given name.
+    !---------------------------------------------
     class(t_fieldset), intent(in) :: this
     character(*), intent(in)      :: field_name
 
@@ -720,6 +734,10 @@ contains
   end function get_field_index
   !===========================================
   real(rk) function get_time(this, date) result(res)
+    !---------------------------------------------
+    ! Returns the time difference between the given date and the first date in the fieldset.
+    ! The time difference is in seconds and ranges between 0 and nc_timestep.
+    !---------------------------------------------
     class(t_fieldset), intent(in) :: this
     type(t_datetime), intent(in)  :: date
 

@@ -1,98 +1,45 @@
 #include "cppdefs.h"
-module utils
+module mod_utils
+  !----------------------------------------------------------------
+  ! Useful functions
+  !----------------------------------------------------------------
   use mod_precdefs
   implicit none
   private
   !===================================================
   !---------------------------------------------
-  public :: t_timer
+  public :: utils
   !---------------------------------------------
-  type t_timer
-    private
-    real(rk) :: m_start = ZERO, m_stop = ZERO
-    real(rk) :: duration = ZERO
-    real(rk) :: m_max = ZERO
-    real(rk) :: m_min = ZERO
-    real(rk) :: n = ZERO
-    logical :: accumulate_duration = .false.
-    character(len=LEN_CHAR_S) :: name
+  type :: t_constants
+    real(rk) :: pi = 4.0_rk * atan(1.0_rk)
+    real(rk) :: gravity = 9.81_rk
+    real(rk) :: boltzmann = 1.38064852e-23_rk
+  end type t_constants
+  !---------------------------------------------
+  type :: t_utils
+    type(t_constants) :: constants
   contains
-    procedure :: start
-    procedure :: stop
-    procedure :: show
-    procedure :: set_accumulate
-    procedure :: reset
-  end type t_timer
+    procedure :: normal_random
+  end type t_utils
   !---------------------------------------------
+  type(t_utils) :: utils !< global instance of t_utils (singleton)
   !===================================================
 contains
   !===========================================
-  subroutine set_accumulate(this)
-    class(t_timer), intent(inout) :: this
+  real(rk) function normal_random(this) result(r)
+    !---------------------------------------------
+    ! Get normally distributed random number from
+    ! uniform distribution given by 'call random_number'
+    !---------------------------------------------
+    class(t_utils), intent(in) :: this
+    real(rk) :: r1, r2
 
-    this%accumulate_duration = .true.
+    call random_number(r1); r1 = 1 - r1
+    call random_number(r2); r2 = 1 - r2
 
-  end subroutine set_accumulate
-  !===========================================
-  subroutine reset(this)
-    class(t_timer), intent(inout) :: this
+    r = sqrt(-2 * log(r1)) * cos(2 * this%constants%pi * r2)
 
-    this%n = ZERO
-    this%duration = ZERO
-    this%m_start = ZERO
-    this%m_stop = ZERO
-    this%name = ""
+    return
+  end function normal_random
 
-  end subroutine reset
-  !===========================================
-  subroutine start(this, name)
-    class(t_timer), intent(inout) :: this
-    character(len=*), optional, intent(in) :: name
-    real(rk) :: current_time
-
-    if (present(name)) this%name = name
-
-    call cpu_time(current_time)
-    this%m_start = current_time
-
-  end subroutine start
-  !===========================================
-  subroutine stop(this)
-    class(t_timer), intent(inout) :: this
-    real(rk) :: current_time
-    real(rk) :: current_duration
-
-    call cpu_time(current_time)
-    this%m_stop = current_time
-    if (this%accumulate_duration) then
-      current_duration = (this%m_stop - this%m_start)
-      this%duration = this%duration + current_duration
-      this%n = this%n + ONE
-      if (this%m_max < current_duration) then
-        this%m_max = current_duration
-      end if
-      if (this%m_min == ZERO) this%m_min = current_duration
-      if (this%m_min > current_duration) then
-        this%m_min = current_duration
-      end if
-    end if
-
-  end subroutine stop
-  !===========================================
-  subroutine show(this, average)
-    class(t_timer), intent(in) :: this
-    logical, intent(in), optional :: average
-    logical :: show_avg
-
-    show_avg = .false.
-
-    if (present(average)) show_avg = average
-
-    if (show_avg) then
- FMT2, "TIMER: ", trim(this%name), ": Average: ", this%duration / this%n, " [sec], max: ", this%m_max, " [sec] min: ", this%m_min, " [sec]"
-    else
-      FMT2, "TIMER: ", trim(this%name), ":", this%m_stop - this%m_start, " [sec] "
-    end if
-
-  end subroutine show
-end module utils
+end module mod_utils

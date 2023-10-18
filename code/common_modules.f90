@@ -5,7 +5,7 @@ module mod_common
   !----------------------------------------------------------------
   use mod_precdefs
   use mod_errors
-  use utils
+  use mod_utils
 #ifdef USE_OMP
   use omp_lib
 #endif

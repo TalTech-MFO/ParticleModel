@@ -69,8 +69,8 @@ contains
     integer :: ipart
 
     ! TODO: OpenMP parallel loop
-    do ipart = 1, size(sv)
-      sv%sa(ipart)%current(:) = sv%sa(ipart)%current(:) + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
+    do ipart = 1, sv%get_size()
+      sv%sa(ipart)%current = sv%sa(ipart)%current + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
     end do
 
     return
@@ -88,9 +88,9 @@ contains
     call k1%copy(sv)
 
     ! TODO: OpenMP parallel loop
-    do ipart = 1, size(sv)
-      k1%sa(ipart)%current(:) = sv%sa(ipart)%current(:) + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
-      sv%sa(ipart)%current(:) = sv%sa(ipart)%current(:) + (k1%sa(ipart)%current(:) + this%kernel%run(k1%sa(ipart), fieldset, time + dt, dt)) * (0.5_rk *dt) ! ! Make sure this is correct
+    do ipart = 1, sv%get_size()
+      k1%sa(ipart)%current = sv%sa(ipart)%current + this%kernel%run(sv%sa(ipart), fieldset, time, dt) * dt
+      sv%sa(ipart)%current = sv%sa(ipart)%current + (k1%sa(ipart)%current + this%kernel%run(k1%sa(ipart), fieldset, time + dt, dt)) * (0.5_rk *dt) ! ! Make sure this is correct
     end do
 
     call k1%clean()

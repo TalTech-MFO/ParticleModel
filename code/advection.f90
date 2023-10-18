@@ -1,5 +1,5 @@
 #include "cppdefs.h"
-#include "advection.h"
+#include "particle.h"
 module mod_advection
   use mod_common
   use mod_process
@@ -31,15 +31,19 @@ contains
     type(t_fieldset), intent(in)   :: fieldset
     real(rk), intent(in)           :: time, dt
     type(t_statearray), intent(in) :: sa
-    real(rk) :: res(size(sa%current))
-    real(rk) :: u, v, ug, vg
+    real(rk) :: res(sa%nvars)
+    real(rk) :: u, v !< u and v velocities in m/s
+    real(rk) :: ug, vg !< u and v velocities in degrees/s
 
     res = ZERO
 
-    u = fieldset%get("U", time, sv(1), sv(2), sv(3))
-    v = fieldset%get("V", time, sv(1), sv(2), sv(3))
+    ! TODO: Preprocessor definition ST_SUSPENDED to (global) simulation parameter (e.g., sim_global%particle_state%suspended)
+    if (sa%state /= ST_SUSPENDED) return
 
-    call fieldset%domain%xy2lonlat(u, v, sv(2), ug, vg)
+    u = fieldset%get("U", time, sa%current(1), sa%current(2), sa%current(3))
+    v = fieldset%get("V", time, sa%current(1), sa%current(2), sa%current(3))
+
+    call fieldset%domain%xy2lonlat(u, v, sa%current(2), ug, vg)
 
     res(1) = ug
     res(4) = u
@@ -47,7 +51,7 @@ contains
     res(5) = v
 
     if (this%is_3d) then
-      res(3) = fieldset%get("W", time, sv(1), sv(2), sv(3))
+      res(3) = fieldset%get("W", time, sa%current(1), sa%current(2), sa%current(3))
       res(6) = res(3)
     end if
 
