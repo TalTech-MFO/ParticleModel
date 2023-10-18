@@ -112,6 +112,9 @@ contains
     p%lon0 = lon
     p%lat0 = lat
     p%depth0 = depth
+    p%lon1 = lon
+    p%lat1 = lat
+    p%depth1 = depth
     p%is_active = is_active
 
     if (.not. p%is_active) then
