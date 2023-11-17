@@ -58,7 +58,7 @@ set(CMAKE_Fortran_FLAGS "-cpp -Wall -ffree-line-length-none -Wcharacter-truncati
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DSNAP_TO_BOUNDS -DSMAGORINSKY_INTERP_UV -DPARTICLE_SNAP_SEALVL -DIGNORE_BAD_PARTICLES -DBIOFOULING_SIMPLE -DNO_DIFFUSE_VERTICAL")
 
 # Set the optimization flags for the release configuration
-set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -DUSE_OMP -fopenmp")
+set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -g -DUSE_OMP -fopenmp")
 
 # Set the debugging flags for the debug configuration
 set(CMAKE_Fortran_FLAGS_DEBUG "-O3 -g -DDEBUG")

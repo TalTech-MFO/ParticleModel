@@ -147,6 +147,17 @@ contains
     call nc_add_attr(file_name, "vs", "units", "m/s")
     call nc_add_attr(file_name, "vs", "name", "vertical velocity (settling) calculated from density difference")
 #endif
+#ifdef OUT_DIFFUSION_VELOCITY
+    call nc_add_variable(file_name, "vdx", "float", 2, [nc_p_dimid, nc_t_dimid], FILLVALUE_BIG)
+    call nc_add_attr(file_name, "vdx", "units", "m/s")
+    call nc_add_attr(file_name, "vdx", "name", "eastward diffusion velocity")
+    call nc_add_variable(file_name, "vdy", "float", 2, [nc_p_dimid, nc_t_dimid], FILLVALUE_BIG)
+    call nc_add_attr(file_name, "vdy", "units", "m/s")
+    call nc_add_attr(file_name, "vdy", "name", "northward diffusion velocity")
+    call nc_add_variable(file_name, "vdz", "float", 2, [nc_p_dimid, nc_t_dimid], FILLVALUE_BIG)
+    call nc_add_attr(file_name, "vdz", "units", "m/s")
+    call nc_add_attr(file_name, "vdz", "name", "vertical diffusion velocity")
+#endif
 #ifdef OUT_DENSITY
     call nc_add_variable(file_name, "rho", "float", 2, [nc_p_dimid, nc_t_dimid], FILLVALUE_BIG)
     call nc_add_attr(file_name, "rho", "units", "kg/m3")
@@ -239,7 +250,11 @@ contains
    call nc_check(trim(nc_fileout_all), nf90_put_var(ncid, varid, dateval, start=[nc_itime_out], count=[1]), "write_data :: put_var")
 
 #ifdef OUT_VELOCITY
+#ifdef OUT_DIFFUSION_VELOCITY
+    allocate (var(nwrite, 9))
+#else
     allocate (var(nwrite, 6))
+#endif
 #else
     allocate (var(nwrite, 3))
 #endif
@@ -253,6 +268,11 @@ contains
       var(ipart, 4) = particles(ipart)%u0
       var(ipart, 5) = particles(ipart)%v0
       var(ipart, 6) = particles(ipart)%w0
+#endif
+#ifdef OUT_DIFFUSION_VELOCITY
+      var(ipart, 7) = particles(ipart)%u_diff
+      var(ipart, 8) = particles(ipart)%v_diff
+      var(ipart, 9) = particles(ipart)%w_diff
 #endif
     end do
     GATHER_OMP_END
@@ -270,6 +290,14 @@ contains
     call nc_check(trim(nc_fileout_all), nf90_put_var(ncid, varid, var(:,5), start=[1, nc_itime_out], count=[nwrite, 1]), "write_data :: put_var")
     call nc_check(trim(nc_fileout_all), nf90_inq_varid(ncid, "vz", varid), "write_data :: inq_varid")
     call nc_check(trim(nc_fileout_all), nf90_put_var(ncid, varid, var(:,6), start=[1, nc_itime_out], count=[nwrite, 1]), "write_data :: put_var")
+#endif
+#ifdef OUT_DIFFUSION_VELOCITY
+    call nc_check(trim(nc_fileout_all), nf90_inq_varid(ncid, "vdx", varid), "write_data :: inq_varid")
+    call nc_check(trim(nc_fileout_all), nf90_put_var(ncid, varid, var(:,7), start=[1, nc_itime_out], count=[nwrite, 1]), "write_data :: put_var")
+    call nc_check(trim(nc_fileout_all), nf90_inq_varid(ncid, "vdy", varid), "write_data :: inq_varid")
+    call nc_check(trim(nc_fileout_all), nf90_put_var(ncid, varid, var(:,8), start=[1, nc_itime_out], count=[nwrite, 1]), "write_data :: put_var")
+    call nc_check(trim(nc_fileout_all), nf90_inq_varid(ncid, "vdz", varid), "write_data :: inq_varid")
+    call nc_check(trim(nc_fileout_all), nf90_put_var(ncid, varid, var(:,9), start=[1, nc_itime_out], count=[nwrite, 1]), "write_data :: put_var")
 #endif
 
     ! Deallocate the matrix for single variables
@@ -298,6 +326,7 @@ contains
     ! deallocate (var)
     var = ZERO
 #endif
+
 #ifdef OUT_DENSITY
     if (.not. allocated(var)) allocate (var(nwrite, 1))
     GATHER_OMP_START_RV

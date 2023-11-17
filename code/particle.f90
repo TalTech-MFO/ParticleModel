@@ -53,6 +53,9 @@ module mod_particle
     real(rk) :: v1 = ZERO                   ! Velocity (t + dt)
     real(rk) :: w1 = ZERO                   ! Velocity (t + dt)
     real(rk) :: vel_vertical = ZERO         ! Settling velocity (Kooi)
+    real(rk) :: u_diff = ZERO               ! Diffusion velocity
+    real(rk) :: v_diff = ZERO               ! Diffusion velocity
+    real(rk) :: w_diff = ZERO               ! Diffusion velocity
     !---------------------------------------------
     real(rk) :: rho = ZERO                  ! Density
     real(rk) :: rho0 = ZERO                 ! Initial density
@@ -133,6 +136,12 @@ contains
     p%kill_boundary = kill_boundary
 
     call fieldset%search_indices(time, lon, lat, depth, i=p%i0, j=p%j0, k=p%k0, ir=p%ir0, jr=p%jr0, kr=p%kr0)
+    p%i1 = p%i0
+    p%j1 = p%j0
+    p%k1 = p%k0
+    p%ir1 = p%ir0
+    p%jr1 = p%jr0
+    p%kr1 = p%kr0
 
   end function ctor_particle
   !===========================================
@@ -294,30 +303,72 @@ contains
     real(rk)                         :: dep
     real(rk)                         :: elev
 
+    dbghead(particle :: check_depth)
+
+    debug(this%ir1)
+    debug(this%jr1)
+
 #ifdef PARTICLE_SNAP_SEALVL
     elev = fieldset%sealevel(t, this%ir1, this%jr1)
     if (this%depth1 >= elev) then
       this%depth1 = elev
+      dbgtail(particle :: check_depth)
       return
     end if
 #endif
 
-    dep = fieldset%domain%get_bathymetry(this%i1, this%j1)
+    ! dep = fieldset%domain%get_bathymetry(this%i1, this%j1)
+    dep = -ONE * fieldset%domain%get_bathymetry(this%i1, this%j1)
 
     ! The particle is past the bottom
-    if (this%depth1 <= -1.0 * dep) then
-      this%depth1 = -1.0 * dep
+    ! if (this%depth1 <= -1.0 * dep) then
+    if (this%depth1 <= dep) then
+      ! ERROR, "Particle is settling:"
+      ! ERROR, "  dep    = ", dep
+      ! ERROR, "  lon0   = ", this%lon0
+      ! ERROR, "  lat0   = ", this%lat0
+      ! ERROR, "  depth0 = ", this%depth0
+      ! ERROR, "  i0     = ", this%i0
+      ! ERROR, "  j0     = ", this%j0
+      ! ERROR, "  k0     = ", this%k0
+      ! ERROR, "  ir0    = ", this%ir0
+      ! ERROR, "  jr0    = ", this%jr0
+      ! ERROR, "  kr0    = ", this%kr0
+      ! ERROR, "  lon1   = ", this%lon1
+      ! ERROR, "  lat1   = ", this%lat1
+      ! ERROR, "  depth1 = ", this%depth1
+      ! ERROR, "  i1     = ", this%i1
+      ! ERROR, "  j1     = ", this%j1
+      ! ERROR, "  k1     = ", this%k1
+      ! ERROR, "  ir1    = ", this%ir1
+      ! ERROR, "  jr1    = ", this%jr1
+      ! ERROR, "  kr1    = ", this%kr1
+      ! ERROR, "  u1     = ", this%u1
+      ! ERROR, "  v1     = ", this%v1
+      ! ERROR, "  w1     = ", this%w1
+      ! ERROR, "  du     = ", this%u_diff
+      ! ERROR, "  dv     = ", this%v_diff
+      ! ERROR, "  dw     = ", this%w_diff
+      ! ERROR, "  vs     = ", this%vel_vertical
+      ! ERROR, "  state  = ", this%state
+      ! call throw_error("particle :: check_depth", "Particle settled.")
+
+      this%depth1 = dep
       this%state = ST_BOTTOM
       this%w1 = ZERO
+      dbgtail(particle :: check_depth)
       return
     end if
 
     ! Reset to SUSPENDED if resuspended
-    if ((this%depth1 > -1.0 * dep) .and. (this%state == ST_BOTTOM)) then
+    if ((this%depth1 > dep) .and. (this%state == ST_BOTTOM)) then
       this%state = ST_SUSPENDED
+      dbgtail(particle :: check_depth)
       return
     end if
 
+    dbgtail(particle :: check_depth)
+    return
   end subroutine check_depth
   !===========================================
   subroutine check_boundaries(this, fieldset, time)
@@ -355,7 +406,7 @@ contains
 #endif
 
     case (DOM_LAND)
-! #if defined PARTICLE_BOUNCE ! ! These two methods are deleted and should never be rewritten again. 
+! #if defined PARTICLE_BOUNCE ! ! These two methods are deleted and should never be rewritten again.
 !       call this%bounce(fieldset)
 ! #elif defined PARTICLE_REDIRECT
 !       call this%redirect(fieldset)

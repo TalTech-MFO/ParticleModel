@@ -16,7 +16,7 @@ module mod_vertical_motion
   private
   !===================================================
   !---------------------------------------------
-  public :: vertical_velocity
+  public :: vertical_velocity, correct_vertical_bounds
   !---------------------------------------------
   ! [variable/type definition]
   !===================================================
@@ -27,44 +27,23 @@ contains
     type(t_fieldset), intent(in)    :: fieldset
     real(rk), intent(in)            :: time
     real(rk)                        :: vert_vel
-    real(rk) :: elev
+    real(rk)                        :: vel_buoyancy
+    real(rk)                        :: vel_resuspension
 
     dbghead(vertical_motion :: vertical_velocity)
     debug(time)
-    vert_vel = buoyancy(p, fieldset, time, p%delta_rho, p%kin_visc) + resuspension(p, fieldset, time, p%u_star)
-    debug(vert_vel)
+
+    vel_buoyancy = buoyancy(p, fieldset, time, p%delta_rho, p%kin_visc)
+    vel_resuspension = resuspension(p, fieldset, time, p%u_star)
+    vert_vel = vel_buoyancy + vel_resuspension
+    ! vert_vel = buoyancy(p, fieldset, time, p%delta_rho, p%kin_visc) + resuspension(p, fieldset, time, p%u_star)
+
+    debug(vel_buoyancy); debug(vel_resuspension); debug(vert_vel)
 
     ! Correct velocity if particle jumps out of water
-    elev = fieldset%sealevel(time, p%ir0, p%jr0)
-    if (p%depth1 + (vert_vel * dt) >= elev) then
-      vert_vel = ((elev - p%depth1) / dt) * 0.99_rk
-    end if
-
-#ifdef DEBUG
-    if (((p%depth1 + (vert_vel * dt)) < -150._rk) .or. ((p%depth1 + (vert_vel * dt)) > 2._rk)) then
-      ERROR, "vertical_motion :: vertical_velocity: particle depth out of range"
-      ERROR, "vertical_motion :: vertical_velocity: particle depth = ", p%depth1
-      ERROR, "vertical_motion :: vertical_velocity: particle vertical velocity = ", vert_vel
-      ERROR, "vertical_motion :: vertical_velocity: particle state = ", p%state
-      ERROR, "vertical_motion :: vertical_velocity: particle delta_rho = ", p%delta_rho
-      ERROR, "vertical_motion :: vertical_velocity: particle kin_visc = ", p%kin_visc
-      ERROR, p%i0, p%j0, p%k0, p%ir0, p%jr0, p%kr0
-      ERROR, p%i1, p%j1, p%k1, p%ir1, p%jr1, p%kr1
-      ERROR, p%lon0, p%lat0, p%depth0
-      ERROR, p%lon1, p%lat1, p%depth1
-      ERROR, "Correcting vertical velocity: "
-      vert_vel = ((2._rk - p%depth1) / dt) * 0.99_rk
-      ERROR, "vertical_motion :: vertical_velocity: corrected vertical_velocity = ", vert_vel
-      ERROR, "vertical_motion :: vertical_velocity: corrected particle depth = ", p%depth1 + (vert_vel * dt)
-      ERROR, "Correcting velocity according to sealevel: "
-      elev = fieldset%sealevel(time, p%ir0, p%jr0)
-      vert_vel = ((elev - p%depth1) / dt) * 0.99_rk
-      ERROR, "vertical_motion :: vertical_velocity: sealevel = ", elev
-      ERROR, "vertical_motion :: vertical_velocity: corrected vertical_velocity = ", vert_vel
-      ERROR, "vertical_motion :: vertical_velocity: corrected particle depth = ", p%depth1 + (vert_vel * dt)
-      call throw_error("vertical_motion :: vertical_velocity", "particle depth out of range")
-    end if
-#endif
+    vert_vel = correct_vertical_bounds(fieldset, time, p%lon0, p%lat0, p%depth1, vert_vel, ignore_bottom=.true.)
+    DBG, "Vertical velocity after correction:"
+    debug(vert_vel)
 
     p%depth1 = p%depth1 + (vert_vel * dt)
     p%vel_vertical = vert_vel
@@ -201,5 +180,51 @@ contains
 
     return
   end function Kooi_vertical_velocity
+  !===========================================
+  real(rk) function correct_vertical_bounds(fieldset, time, lon, lat, depth, vert_vel, ignore_bottom) result(res)
+    type(t_fieldset), intent(in) :: fieldset
+    real(rk), intent(in) :: time
+    real(rk), intent(in) :: lon
+    real(rk), intent(in) :: lat
+    real(rk), intent(in) :: depth
+    real(rk), intent(in) :: vert_vel
+    logical, intent(in), optional :: ignore_bottom
+    real(rk) :: elev
+    real(rk) :: dep
+    real(rk) :: target_depth
+    integer :: i, j
+    real(rk) :: ir, jr
+    logical :: ignore
+
+    res = vert_vel
+    ignore = .false.
+    if (present(ignore_bottom)) ignore = ignore_bottom
+
+    call fieldset%search_indices(x=lon, y=lat, i=i, j=j, ir=ir, jr=jr)
+
+    elev = fieldset%sealevel(time, ir, jr)
+    if (depth + (vert_vel * dt) >= elev) then
+      res = ((elev - depth) / dt) * 0.99_rk
+    end if
+
+    if (ignore) return
+
+    dep = -ONE * fieldset%domain%get_bathymetry(i, j)
+    if (depth + (vert_vel * dt) <= dep) then
+      target_depth = 0.9_rk * dep
+      res = (target_depth - depth) / dt
+    end if
+    ! if (depth + (vert_vel * dt) <= dep) then
+    !   if (depth >= dep) then
+    !     ! If we are still in the water column, but about to hit the bottom, then we have to go slower
+    !     res = ((dep - depth) / dt) * 0.9_rk
+    !   else
+    !     ! If we're already undergound (due to horizontal transport), then we have to go up and faster
+    !     res = ((dep - depth) / dt) * 1.1_rk
+    !   end if
+    ! end if
+
+    return
+  end function correct_vertical_bounds
 
 end module mod_vertical_motion

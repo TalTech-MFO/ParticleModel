@@ -1450,6 +1450,13 @@ contains
       call throw_error("fieldset :: read_field_subdomains", "Field "//trim(p_field%get_name())//" is not 2D or 3D")
     end select
 
+#ifdef DEBUG
+    DBG, "Reading "//trim(varname)
+    debug(field_idx)
+    debug(this%u_idx)
+    debug(this%v_idx)
+#endif
+
     if (n_dims == 2) then
       allocate (buffer(this%nx, this%ny, 1))
       allocate (count(3))
@@ -1504,6 +1511,7 @@ contains
 
     select case (c_field)
     case ("v")
+      DBG, "Doing case 'v'"
       do j = 1, this%ny
         do i = 1, this%nx
           if (seamask(i, j) == DOM_LAND) then
@@ -1525,8 +1533,20 @@ contains
         end do
       end do
     case ("u")
+      DBG, "Doing case 'u'"
       do j = 1, this%ny
         do i = 1, this%nx
+#ifdef DEBUG
+          ! TODO: buffer(i, j+1) is modified after this pass, so it gets
+          ! overwritten. Maybe add a "to be modified" flag to the mask, or some
+          ! kind of use of the where(u_mask == ...) statement
+          ! ! WAIT... I might be wrong...
+          if ((i == 1390) .and. (j == 441)) then ! 1390 and 441 on GOF data!!!
+            DBG, i, j
+            DBG, seamask(i, j)
+            DBG, this%v_mask(i, j)
+          end if
+#endif
           if (seamask(i, j) == DOM_LAND) then
             buffer(i, j, :) = ZERO
           end if
@@ -1537,6 +1557,14 @@ contains
       end do
       do j = 1, this%ny
         do i = 1, this%nx
+#ifdef DEBUG
+          if ((i == 1390) .and. (j == 441)) then
+            DBG, i, j
+            DBG, seamask(i, j)
+            DBG, this%u_mask(i, j)
+            DBG, buffer(i, j, 1)
+          end if
+#endif
           if (this%u_mask(i, j) > 0) then
             buffer(i, j, :) = buffer(i, j + 1, :)
           else if (this%u_mask(i, j) < 0) then
@@ -1545,6 +1573,7 @@ contains
         end do
       end do
     case default
+      DBG, "Doing case 'default'"
       do j = 1, this%ny
         do i = 1, this%nx
           if (seamask(i, j) == DOM_LAND) then
@@ -1644,7 +1673,7 @@ contains
     class(t_variable), pointer    :: p_field
     real(rk)                      :: zax(this%nz)
 
-    res = 0.
+    res = ZERO
     if (this%fields%key_exists("ELEV")) then
       call this%fields%get_item("ELEV", p_field)
       select type (p_field)

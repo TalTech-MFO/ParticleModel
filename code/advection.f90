@@ -7,6 +7,7 @@ module mod_advection
   use time_vars, only: dt
   use mod_particle, only: t_particle
   use mod_fieldset, only: t_fieldset
+  use mod_vertical_motion, only: correct_vertical_bounds
   implicit none
   private
   !===================================================
@@ -118,14 +119,14 @@ contains
     u2 = fieldset%get("U", time + dt, i, j)
     v2 = fieldset%get("V", time + dt, i, j)
 
-    x2 = x0 + 0.5 * (u1 + u2) * dt
-    y2 = y0 + 0.5 * (v1 + v2) * dt
+    x2 = x0 + HALF * (u1 + u2) * dt
+    y2 = y0 + HALF * (v1 + v2) * dt
 
     call fieldset%domain%xy2lonlat(x2, y2, p%lon1, p%lat1)
     call fieldset%search_indices(x=p%lon1, y=p%lat1, i=p%i1, j=p%j1, ir=p%ir1, jr=p%jr1)
 
-    p%u1 = 0.5 * (u1 + u2)
-    p%v1 = 0.5 * (v1 + v2)
+    p%u1 = HALF * (u1 + u2)
+    p%v1 = HALF * (v1 + v2)
 
     return
   end subroutine advect_RK2_2D
@@ -143,12 +144,16 @@ contains
                                        lon1, lat1, &
                                        u1, u2, &
                                        v1, v2, &
-                                       w1, w2
+                                       w1, w2, w2_tmp
     real(rk)                        :: i, j, k
+
+    dbghead(advection :: advect_RK2_3D)
 
     i = p%ir0
     j = p%jr0
     k = p%kr0
+
+    debug(i); debug(j); debug(k); debug(time)
 
     call fieldset%domain%lonlat2xy(p%lon0, p%lat0, x0, y0)
     z0 = p%depth0
@@ -161,11 +166,16 @@ contains
     w1 = ZERO
 #endif
 
+    debug(u1); debug(v1); debug(w1)
+
     x1 = x0 + u1 * dt
     y1 = y0 + v1 * dt
-    z1 = z0 + w1 * dt
 
     call fieldset%domain%xy2lonlat(x1, y1, lon1, lat1)
+    w1 = correct_vertical_bounds(fieldset, time, lon1, lat1, z0, w1)
+
+    z1 = z0 + w1 * dt
+
     call fieldset%search_indices(t=time + dt, x=lon1, y=lat1, z=z1, ir=i, jr=j, kr=k)
 
     u2 = fieldset%get("U", time + dt, i, j, k); if (isnan(u2)) u2 = ZERO
@@ -176,18 +186,31 @@ contains
     w2 = ZERO
 #endif
 
-    x2 = x0 + 0.5 * (u1 + u2) * dt
-    y2 = y0 + 0.5 * (v1 + v2) * dt
-    z2 = z0 + 0.5 * (w1 + w2) * dt
+    debug(u2); debug(v2); debug(w2)
 
+    ! Horizontal advection
+    x2 = x0 + HALF * (u1 + u2) * dt
+    y2 = y0 + HALF * (v1 + v2) * dt
+
+    ! Vertical velocity correction
     call fieldset%domain%xy2lonlat(x2, y2, p%lon1, p%lat1)
+    w2_tmp = HALF * (w1 + w2) ! ! Using a temporary variable to correct vertical bounds
+    w2 = correct_vertical_bounds(fieldset, time + dt, p%lon1, p%lat1, z0, w2_tmp)
+
+    DBG, "Velocity after correction:"
+    debug(u2); debug(v2); debug(w2)
+
+    ! Vertical advection
+    z2 = z0 + w2 * dt
+
     call fieldset%search_indices(t=time + dt, x=p%lon1, y=p%lat1, z=z2, i=p%i1, j=p%j1, k=p%k1, ir=p%ir1, jr=p%jr1, kr=p%kr1)
     p%depth1 = z2
 
-    p%u1 = 0.5 * (u1 + u2)
-    p%v1 = 0.5 * (v1 + v2)
-    p%w1 = 0.5 * (w1 + w2)
+    p%u1 = HALF * (u1 + u2)
+    p%v1 = HALF * (v1 + v2)
+    p%w1 = w2 ! 0.5 * (w1 + w2) was already calculated in w2_tmp
 
+    dbgtail(advection :: advect_RK2_3D)
     return
   end subroutine advect_RK2_3D
   !===========================================

@@ -10,7 +10,8 @@ module mod_diffusion
   use mod_particle, only: t_particle
   use mod_fieldset, only: t_fieldset
   use mod_physics, only: Ah_Smagorinsky
-  use mod_random, only: normal_random
+  use mod_random, only: normal_random, unit_random
+  use mod_vertical_motion, only: correct_vertical_bounds
   implicit none
   private
   !===================================================
@@ -29,6 +30,7 @@ contains
     real(rk)                        :: i, j
     real(rk)                        :: x0, x1, &
                                        y0, y1
+    real(rk) :: du, dv ! Diffusion velocity components
 
     i = p%ir0
     j = p%jr0
@@ -41,11 +43,17 @@ contains
     Ah = get_Ah_Smagorinsky_full_field(fieldset, i, j)
 #endif
 
-    x1 = x0 + normal_random() * sqrt(2 * Ah * dt)
-    y1 = y0 + normal_random() * sqrt(2 * Ah * dt)
+    du = unit_random() * sqrt(2_rk * Ah * dt) / dt
+    dv = unit_random() * sqrt(2_rk * Ah * dt) / dt
+
+    x1 = x0 + du * dt
+    y1 = y0 + dv * dt
 
     call fieldset%domain%xy2lonlat(x1, y1, p%lon1, p%lat1)
     call fieldset%search_indices(x=p%lon1, y=p%lat1, i=p%i1, j=p%j1, ir=p%ir1, jr=p%jr1)
+
+    p%u_diff = du
+    p%v_diff = dv
 
     return
   end subroutine diffuse_2D
@@ -60,6 +68,7 @@ contains
     real(rk)                        :: x0, x1, &
                                        y0, y1, &
                                        z0, z1
+    real(rk) :: du, dv, dw ! Diffusion velocity components
 
     dbghead(diffusion :: diffuse_3D)
     i = p%ir0
@@ -103,30 +112,38 @@ contains
 
     debug(Ah); debug(kv)
 
-    x1 = x0 + normal_random() * sqrt(2 * Ah * dt)
-    y1 = y0 + normal_random() * sqrt(2 * Ah * dt)
+    ! x1 = x0 + normal_random() * sqrt(2 * Ah * dt)
+    ! y1 = y0 + normal_random() * sqrt(2 * Ah * dt)
+    du = unit_random() * sqrt(2_rk * Ah * dt) / dt
+    dv = unit_random() * sqrt(2_rk * Ah * dt) / dt
 #ifndef NO_DIFFUSE_VERTICAL
-    z1 = z0 + normal_random() * sqrt(2 * kv * dt)
+    ! z1 = z0 + normal_random() * sqrt(2 * kv * dt)
+    dw = unit_random() * sqrt(2_rk * kv * dt) / dt
 #else
-    z1 = z0
+    ! z1 = z0
+    dw = ZERO
 #endif
 
     debug(x1); debug(y1); debug(z1)
+    debug(du); debug(dv); debug(dw)
 
-#ifdef DEBUG
-    if ((z1 < -150._rk) .or. (z1 > 15._rk)) then
-      ERROR, "diffusion :: diffuse_3D", "z1 = ", z1
-      ERROR, "diffusion :: diffuse_3D", "z0 = ", z0
-      ERROR, "diffusion :: diffuse_3D", "kv = ", kv
-      ERROR, "diffusion :: diffuse_3D", "Ah = ", Ah
-      ERROR, "diffusion :: diffuse_3D", "vertical_diffusion_method = ", vertical_diffusion_method
-      call throw_error("diffusion :: diffuse_3D", "z1 < -150._rk .or. z1 > 15._rk")
-    end if
-#endif
+    x1 = x0 + du * dt
+    y1 = y0 + dv * dt
 
     call fieldset%domain%xy2lonlat(x1, y1, p%lon1, p%lat1)
+    dw = correct_vertical_bounds(fieldset, time, p%lon1, p%lat1, z0, dw)
+
+    DBG, "Diffusion velocity after correction:"
+    debug(du); debug(dv); debug(dw)
+
+    z1 = z0 + dw * dt
+
     call fieldset%search_indices(t=time, x=p%lon1, y=p%lat1, z=z1, i=p%i1, j=p%j1, k=p%k1, ir=p%ir1, jr=p%jr1, kr=p%kr1)
     p%depth1 = z1
+
+    p%u_diff = du
+    p%v_diff = dv
+    p%w_diff = dw
 
     dbgtail(diffusion :: diffuse_3D)
     return

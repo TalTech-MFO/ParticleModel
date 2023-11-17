@@ -9,7 +9,7 @@ module mod_random
   private
   !===================================================
   !---------------------------------------------
-  public :: init_rng, normal_random
+  public :: init_rng, normal_random, unit_random
   !---------------------------------------------
   ! [variable/type definition]
   !===================================================
@@ -41,5 +41,18 @@ contains
 
     return
   end function normal_random
+  !===========================================
+  real(rk) function unit_random() result(r)
+    !---------------------------------------------
+    ! Get normally distributed random number from
+    ! uniform distribution given by 'call random_number'
+    !---------------------------------------------
+    real(rk) :: r1
+
+    call random_number(r1)
+    r = 2_rk * r1 - 1_rk
+
+    return
+  end function unit_random
 
 end module mod_random

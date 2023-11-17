@@ -1,4 +1,4 @@
-Updated: Wed Oct 18 14:55:12 EEST 2023
+Updated: Fri Nov 17 16:07:38 EET 2023
 code/datetime.f90-68-  type(t_datetime) function ctor_datetime(date_str) result(res)
 code/datetime.f90-69-    !---------------------------------------------
 code/datetime.f90-70-    ! Constructor for datetime
@@ -76,21 +76,21 @@ code/fieldset.f90-761-    !---------------------------------------------
 code/fieldset.f90-762-    class(t_fieldset), intent(in)   :: this
 code/fieldset.f90-763-    real(rk), intent(in)            :: t, z
 --
-code/fieldset.f90-941-  !===========================================
-code/fieldset.f90-942-  subroutine find_directory(this, date, dir_name, dir_idx)
-code/fieldset.f90-943-    !---------------------------------------------
-code/fieldset.f90:944:    ! TODO: might have to check if nc files start at time
-code/fieldset.f90-945-    ! [date] 00:00:00 or [date] 00:00:10 (at least in this particular example)
-code/fieldset.f90-946-    ! Compare every time?
-code/fieldset.f90-947-    ! Some validity check would be nice
+code/fieldset.f90-932-  !===========================================
+code/fieldset.f90-933-  subroutine find_directory(this, date, dir_name, dir_idx)
+code/fieldset.f90-934-    !---------------------------------------------
+code/fieldset.f90:935:    ! TODO: might have to check if nc files start at time
+code/fieldset.f90-936-    ! [date] 00:00:00 or [date] 00:00:10 (at least in this particular example)
+code/fieldset.f90-937-    ! Compare every time?
+code/fieldset.f90-938-    ! Some validity check would be nice
 --
-code/fieldset.f90-1546-      do j = 1, this%ny
-code/fieldset.f90-1547-        do i = 1, this%nx
-code/fieldset.f90-1548-#ifdef DEBUG
-code/fieldset.f90:1549:          ! TODO: buffer(i, j+1) is modified after this pass, so it gets
-code/fieldset.f90-1550-          ! overwritten. Maybe add a "to be modified" flag to the mask, or some
-code/fieldset.f90-1551-          ! kind of use of the where(u_mask == ...) statement
-code/fieldset.f90-1552-          ! ! WAIT... I might be wrong...
+code/fieldset.f90-1537-      do j = 1, this%ny
+code/fieldset.f90-1538-        do i = 1, this%nx
+code/fieldset.f90-1539-#ifdef DEBUG
+code/fieldset.f90:1540:          ! TODO: buffer(i, j+1) is modified after this pass, so it gets
+code/fieldset.f90-1541-          ! overwritten. Maybe add a "to be modified" flag to the mask, or some
+code/fieldset.f90-1542-          ! kind of use of the where(u_mask == ...) statement
+code/fieldset.f90-1543-          ! ! WAIT... I might be wrong...
 --
 code/init.f90-184-  subroutine init_fieldset
 code/init.f90-185-    !---------------------------------------------
@@ -124,21 +124,21 @@ code/main.f90-11-#if (defined(BIOFOULING_KOOI) || defined(BIOFOULING_TSIARAS) ||
 code/main.f90-12-  use run_params, only: biofouling_nmlfilename
 code/main.f90-13-#endif
 --
-code/output.f90-624-  subroutine write_restart(nwrite)
-code/output.f90-625-    ! ---------------------------------------
-code/output.f90-626-    ! Write restart file
-code/output.f90:627:    ! TODO: this should be a method of the particle (array) class
-code/output.f90-628-    ! ---------------------------------------
-code/output.f90-629-    integer, intent(in) :: nwrite
-code/output.f90-630-    character(len=LEN_CHAR_L) :: restart_file
+code/output.f90-653-  subroutine write_restart(nwrite)
+code/output.f90-654-    ! ---------------------------------------
+code/output.f90-655-    ! Write restart file
+code/output.f90:656:    ! TODO: this should be a method of the particle (array) class
+code/output.f90-657-    ! ---------------------------------------
+code/output.f90-658-    integer, intent(in) :: nwrite
+code/output.f90-659-    character(len=LEN_CHAR_L) :: restart_file
 --
-code/particle.f90-285-  !===========================================
-code/particle.f90-286-  subroutine check_depth(this, fieldset, t)
-code/particle.f90-287-    !---------------------------------------------
-code/particle.f90:288:    ! TODO: Interpolation for bathymetry?
-code/particle.f90-289-    !---------------------------------------------
-code/particle.f90-290-
-code/particle.f90-291-    class(t_particle), intent(inout) :: this
+code/particle.f90-294-  !===========================================
+code/particle.f90-295-  subroutine check_depth(this, fieldset, t)
+code/particle.f90-296-    !---------------------------------------------
+code/particle.f90:297:    ! TODO: Interpolation for bathymetry?
+code/particle.f90-298-    !---------------------------------------------
+code/particle.f90-299-
+code/particle.f90-300-    class(t_particle), intent(inout) :: this
 --
 code/physics.f90-6-module mod_physics
 code/physics.f90-7-  !----------------------------------------------------------------
@@ -172,18 +172,18 @@ code/vars.f90-88-  integer                   :: zax_style, &                    
 code/vars.f90-89-                               zax_direction, &                ! > 0 - positive up, < 0 - positive down
 code/vars.f90-90-                               density_method, &               ! 0 - default density, 1 - has variable, 2 - calculate from T/S
 --
-code/vertical_motion.f90-82-    !---------------------------------------------
-code/vertical_motion.f90-83-    ! Gives a settled particle vertical velocity if
-code/vertical_motion.f90-84-    ! the bottom friction velocity exceeds a certain threshold
-code/vertical_motion.f90:85:    ! TODO: currently, resuspension_threshold is a namelist parameter,
-code/vertical_motion.f90-86-    ! perhaps should be calculated as the particles' critical flow velocity.
-code/vertical_motion.f90-87-    ! Ref: Erosion Behavior of Different Microplastic Particles in Comparison to Natural Sediments
-code/vertical_motion.f90-88-    !       Kryss Waldschläger and Holger Schüttrumpf
+code/vertical_motion.f90-61-    !---------------------------------------------
+code/vertical_motion.f90-62-    ! Gives a settled particle vertical velocity if
+code/vertical_motion.f90-63-    ! the bottom friction velocity exceeds a certain threshold
+code/vertical_motion.f90:64:    ! TODO: currently, resuspension_threshold is a namelist parameter,
+code/vertical_motion.f90-65-    ! perhaps should be calculated as the particles' critical flow velocity.
+code/vertical_motion.f90-66-    ! Ref: Erosion Behavior of Different Microplastic Particles in Comparison to Natural Sediments
+code/vertical_motion.f90-67-    !       Kryss Waldschläger and Holger Schüttrumpf
 --
-code/vertical_motion.f90-127-  real(rk) function buoyancy(p, fieldset, time, delta_rho, kin_visc) result(res)
-code/vertical_motion.f90-128-    !---------------------------------------------
-code/vertical_motion.f90-129-    ! Calculate the vertical velocity due to buoyancy
-code/vertical_motion.f90:130:    ! TODO: Which timestep should be used? (original or t + dt?)
-code/vertical_motion.f90-131-    !---------------------------------------------
-code/vertical_motion.f90-132-    type(t_particle), intent(in)    :: p
-code/vertical_motion.f90-133-    type(t_fieldset), intent(in)    :: fieldset
+code/vertical_motion.f90-106-  real(rk) function buoyancy(p, fieldset, time, delta_rho, kin_visc) result(res)
+code/vertical_motion.f90-107-    !---------------------------------------------
+code/vertical_motion.f90-108-    ! Calculate the vertical velocity due to buoyancy
+code/vertical_motion.f90:109:    ! TODO: Which timestep should be used? (original or t + dt?)
+code/vertical_motion.f90-110-    !---------------------------------------------
+code/vertical_motion.f90-111-    type(t_particle), intent(in)    :: p
+code/vertical_motion.f90-112-    type(t_fieldset), intent(in)    :: fieldset
