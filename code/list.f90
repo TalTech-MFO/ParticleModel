@@ -32,6 +32,7 @@ module mod_list
 
   contains
     private
+    procedure, public :: size => l_get_size
     procedure, public :: add_node => l_add_node
     procedure, public :: key_exists => l_key_exists
     procedure, public :: node_loc => l_node_loc
@@ -81,6 +82,13 @@ contains
     end if
 
   end subroutine dtor_linked_list
+  !===========================================
+  integer function l_get_size(this)
+    class(t_list), intent(in) :: this
+
+    l_get_size = this%num_nodes
+
+  end function l_get_size
   !===========================================
   subroutine l_get_idx_node(this, idx, res)
     class(t_list), intent(in)          :: this

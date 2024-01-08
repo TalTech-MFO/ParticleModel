@@ -843,6 +843,9 @@ contains
 
     if (this%zax_style /= STATIC_DEPTH_VALUES) call throw_error("fieldset :: get_zax_regular", "Z axis is not static")
 
+    res = [ZERO]
+    if (this%zax_idx == 0) return
+
     call this%fields%get_item(this%zax_idx, p_field)
     select type (p_field)
     type is (t_field_static_1d)
@@ -863,6 +866,9 @@ contains
     real(rk)                         :: arr_zax(this%nz)
     real(rk)                         :: res(this%nz)
     integer                          :: ik
+
+    res = [ZERO]
+    if (this%zax_idx == 0) return
 
     call this%fields%get_item(this%zax_idx, p_field)
     select type (p_field)
@@ -1201,7 +1207,7 @@ contains
       ign_chk = .false.
     end if
 
-    ! Check if it's even time to read
+    ! Check if it's even time to readk
     if ((.not. ign_chk) .and. (date < this%next_read_dt)) then
       return
     end if

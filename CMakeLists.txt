@@ -15,6 +15,8 @@ set(INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Add the source files
 file(GLOB SOURCES ${SRC_DIR}/*.f90)
+file(GLOB PP_SOURCES ${SRC_DIR}/postprocessing/*.f90)
+list(APPEND SOURCES ${PP_SOURCES})
 
 # Add the include directories
 include_directories(${INC_DIR})

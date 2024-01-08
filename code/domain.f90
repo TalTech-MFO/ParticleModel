@@ -428,8 +428,8 @@ contains
     real(rk), intent(in)  :: lon, lat
     real(rk), intent(out) :: x, y
 
-    x = (lon - this%lboundx) * ((radius_earth * pi / 180._rk) * cos(lat * pi / 180._rk))
     y = (lat - this%lboundy) * (radius_earth * pi / 180._rk)
+    x = (lon - this%lboundx) * ((radius_earth * pi / 180._rk) * cos(lat * pi / 180._rk))
 
     return
   end subroutine lonlat2xy
@@ -443,9 +443,12 @@ contains
     real(rk), intent(in) :: x, y
     real(rk), intent(out) :: lon, lat
 
+    dbghead(domain :: cart2geo)
+    
     lat = y / (radius_earth * pi / 180._rk) + this%lboundy
     lon = x / ((radius_earth * pi / 180._rk) * cos(lat * pi / 180._rk)) + this%lboundx
-
+    
+    dbgtail(domain :: cart2geo)
     return
   end subroutine cart2geo
   !===========================================
@@ -459,9 +462,12 @@ contains
     real(rk), intent(in) :: lat
     real(rk), intent(out) :: gx, gy
 
-    gx = mx / ((radius_earth * pi / 180._rk) * cos(lat * pi / 180._rk))
+    dbghead(domain :: m2geo)
+    
     gy = my / (radius_earth * pi / 180._rk)
-
+    gx = mx / ((radius_earth * pi / 180._rk) * cos(lat * pi / 180._rk))
+    
+    dbgtail(domain :: m2geo)
     return
   end subroutine m2geo
   !===========================================

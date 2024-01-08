@@ -5,7 +5,7 @@ module utils
   private
   !===================================================
   !---------------------------------------------
-  public :: t_timer
+  public :: t_timer, insert_before_extension
   !---------------------------------------------
   type t_timer
     private
@@ -95,4 +95,33 @@ contains
     end if
 
   end subroutine show
+  !===========================================
+  function insert_before_extension(filename, substr) result(new_filename)
+    character(len=*), intent(in) :: filename, substr
+    character(len=LEN_CHAR_L) :: new_filename
+    integer :: pos
+
+    ! Find the position of the last dot in the filename
+    pos = find_last_dot(filename)
+
+    ! Create the new filename
+    if (pos > 0) then
+      new_filename = filename(:pos - 1)//substr//filename(pos:)
+    else
+      new_filename = filename//substr
+    end if
+  end function insert_before_extension
+  !===========================================
+  function find_last_dot(str) result(pos)
+    character(len=*), intent(in) :: str
+    integer :: pos, i
+
+    pos = -1
+    do i = len_trim(str), 1, -1
+      if (str(i:i) == '.') then
+        pos = i
+        exit
+      end if
+    end do
+  end function find_last_dot
 end module utils

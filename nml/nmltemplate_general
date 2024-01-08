@@ -163,6 +163,16 @@
   zax_direction = 1
 /
 !===============================
+! Postprocessor variables
+!-------------------------------
+! postprocessor_output_frequency - [int]   Output frequency in time steps
+! grid_size                      - [float] Grid size in meters
+!===============================
+&postprocessor_vars
+  postprocessor_output_frequency = 10
+  postprocessor_grid_size = 1000.0
+/
+!===============================
 ! Output variables
 !-------------------------------
 ! outDir                 - [char]  Where to save the data

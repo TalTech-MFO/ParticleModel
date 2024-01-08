@@ -26,6 +26,7 @@ module mod_loop
                         write_data_only_active, &
 #endif
                         write_restart, write_all_particles, write_active_particles
+  use postprocess_vars, only: postprocessor
   implicit none
   private
   !===================================================
@@ -61,6 +62,9 @@ contains
       !   - update fields
       call fieldset%update(theDate)
       time = fieldset%get_time(theDate)
+
+      !   - reset postprocessor fields (if needed)
+      call postprocessor%reset_measures()
 
       !   - release particles
       call release_particles(itime, theDate, fieldset, time)
@@ -125,10 +129,18 @@ contains
         DBG, "Particle before updating"
         call particles(ipart)%print_info()
 #endif
-        call particles(ipart)%update(fieldset, time)
+        call particles(ipart)%update(fieldset, time, dt)
+
+        !---------------------------------------------
+        ! Postprocessing
+        call postprocessor%after_timestep(particles(ipart))
 
       end do
       END_OMP_DO
+
+      ! !---------------------------------------------
+      ! ! Postprocessing
+      ! call postprocessor%after_timestep(particles, runparts)
 
       !---------------------------------------------
       ! Update time
@@ -142,6 +154,8 @@ contains
         if (write_active_particles) call write_data_only_active(runparts)
 #endif
       end if
+
+      call postprocessor%save(itime, theDate)
 
       !---------------------------------------------
       ! Write restart (save after updating the date so it could be used as initial state later)
@@ -159,6 +173,7 @@ contains
     if (restartstep == 0) then
       call write_restart(runparts)
     end if
+    call postprocessor%write_restart(theDate)
 
     call date_and_time(date=d, time=t)
     FMT2, LINE

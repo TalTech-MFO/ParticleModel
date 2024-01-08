@@ -11,8 +11,8 @@ module nc_manager
   !===================================================
   !---------------------------------------------
   public :: nc_read_real_1d, nc_read_real_2d, nc_read_real_3d, nc_read_real_4d, nc_read_time_val, &
-            nc_get_dim_len, nc_get_file_dims, nc_get_var_dims, nc_get_var_fillvalue, &
-            nc_get_timeunit, nc_attr_exists, nc_var_exists, nc_check
+            nc_get_dim_len, nc_get_file_dims, nc_get_file_vars, nc_get_var_dims, nc_get_var_fillvalue, &
+            nc_get_timeunit, nc_attr_exists, nc_get_attr, nc_var_exists, nc_check
 
   !---------------------------------------------
   ! Public write variables/functions
@@ -34,6 +34,18 @@ module nc_manager
     module procedure nc_write_real_3d_const
     module procedure nc_write_real_4d
   end interface nc_write
+  interface nc_add_attr
+    module procedure nc_add_glob_attr_text
+    module procedure nc_add_glob_attr_numeric
+    module procedure nc_add_var_attr_text
+    module procedure nc_add_var_attr_numeric
+  end interface nc_add_attr
+  interface nc_get_attr
+    module procedure nc_get_glob_attr_text
+    module procedure nc_get_glob_attr_numeric
+    module procedure nc_get_var_attr_text
+    module procedure nc_get_var_attr_numeric
+  end interface nc_get_attr
   !===================================================
 contains
   !===========================================
@@ -116,7 +128,54 @@ contains
     return
   end subroutine nc_add_variable
   !===========================================
-  subroutine nc_add_attr(FILE_NAME, varname, attrname, attrval)
+  subroutine nc_add_glob_attr_text(FILE_NAME, attrname, attrval)
+    !---------------------------------------------
+    ! Add attribute to variable
+    !---------------------------------------------
+
+    character(len=*), intent(in)   :: FILE_NAME
+    character(len=*), intent(in)   :: attrname, attrval
+    integer                        :: ncid
+
+    FMT1, "======== Add netCDF attribute ========"
+    FMT2, "Adding attribute ", trim(attrname), " to ", trim(FILE_NAME)
+
+    call nc_check(trim(FILE_NAME), nf90_open(trim(FILE_NAME), nf90_write, ncid), "nc_add_glob_attr_text :: open")
+    call nc_check(trim(FILE_NAME), nf90_redef(ncid), "nc_add_glob_attr_text :: redef mode")
+    call nc_check(trim(FILE_NAME), nf90_put_att(ncid, nf90_global, trim(attrname), trim(attrval)), "nc_add_glob_attr_text :: put "//trim(attrname))
+    call nc_check(trim(FILE_NAME), nf90_enddef(ncid), "nc_add_glob_attr_text :: end def")
+    call nc_check(trim(FILE_NAME), nf90_close(ncid), "nc_add_glob_attr_text :: close")
+
+    FMT2, trim(attrname), " added successfully"
+
+    return
+  end subroutine nc_add_glob_attr_text
+  !===========================================
+  subroutine nc_add_glob_attr_numeric(FILE_NAME, attrname, attrval)
+    !---------------------------------------------
+    ! Add attribute to variable
+    !---------------------------------------------
+
+    character(len=*), intent(in)   :: FILE_NAME
+    character(len=*), intent(in)   :: attrname
+    real(rk), intent(in)           :: attrval
+    integer                        :: ncid
+
+    FMT1, "======== Add netCDF attribute ========"
+    FMT2, "Adding attribute ", trim(attrname), " to ", trim(FILE_NAME)
+
+    call nc_check(trim(FILE_NAME), nf90_open(trim(FILE_NAME), nf90_write, ncid), "nc_add_glob_attr_numeric :: open")
+    call nc_check(trim(FILE_NAME), nf90_redef(ncid), "nc_add_glob_attr_numeric :: redef mode")
+    call nc_check(trim(FILE_NAME), nf90_put_att(ncid, nf90_global, trim(attrname), attrval), "nc_add_glob_attr_numeric :: put "//trim(attrname))
+    call nc_check(trim(FILE_NAME), nf90_enddef(ncid), "nc_add_glob_attr_numeric :: end def")
+    call nc_check(trim(FILE_NAME), nf90_close(ncid), "nc_add_glob_attr_numeric :: close")
+
+    FMT2, trim(attrname), " added successfully"
+
+    return
+  end subroutine nc_add_glob_attr_numeric
+  !===========================================
+  subroutine nc_add_var_attr_text(FILE_NAME, varname, attrname, attrval)
     !---------------------------------------------
     ! Add attribute to variable
     !---------------------------------------------
@@ -128,17 +187,42 @@ contains
     FMT1, "======== Add netCDF attribute ========"
     FMT2, "Adding attribute ", trim(attrname), " to ", trim(FILE_NAME)
 
-    call nc_check(trim(FILE_NAME), nf90_open(trim(FILE_NAME), nf90_write, ncid), "add attr :: open")
-    call nc_check(trim(FILE_NAME), nf90_redef(ncid), "add attr :: redef mode")
-    call nc_check(trim(FILE_NAME), nf90_inq_varid(ncid, trim(varname), varid), "add attr :: inq varid")
-    call nc_check(trim(FILE_NAME), nf90_put_att(ncid, varid, trim(attrname), trim(attrval)), "add attr :: put "//trim(attrname))
-    call nc_check(trim(FILE_NAME), nf90_enddef(ncid), "add attr :: end def")
-    call nc_check(trim(FILE_NAME), nf90_close(ncid), "add attr :: close")
+    call nc_check(trim(FILE_NAME), nf90_open(trim(FILE_NAME), nf90_write, ncid), "nc_add_var_attr_text :: open")
+    call nc_check(trim(FILE_NAME), nf90_redef(ncid), "nc_add_var_attr_text :: redef mode")
+    call nc_check(trim(FILE_NAME), nf90_inq_varid(ncid, trim(varname), varid), "nc_add_var_attr_text :: inq varid")
+    call nc_check(trim(FILE_NAME), nf90_put_att(ncid, varid, trim(attrname), trim(attrval)), "nc_add_var_attr_text :: put "//trim(attrname))
+    call nc_check(trim(FILE_NAME), nf90_enddef(ncid), "nc_add_var_attr_text :: end def")
+    call nc_check(trim(FILE_NAME), nf90_close(ncid), "nc_add_var_attr_text :: close")
 
     FMT2, trim(attrname), " added successfully"
 
     return
-  end subroutine nc_add_attr
+  end subroutine nc_add_var_attr_text
+  !===========================================
+  subroutine nc_add_var_attr_numeric(FILE_NAME, varname, attrname, attrval)
+    !---------------------------------------------
+    ! Add attribute to variable
+    !---------------------------------------------
+
+    character(len=*), intent(in)   :: FILE_NAME
+    character(len=*), intent(in)   :: varname, attrname
+    real(rk), intent(in)           :: attrval
+    integer                        :: ncid, varid
+
+    FMT1, "======== Add netCDF attribute ========"
+    FMT2, "Adding attribute ", trim(attrname), " to ", trim(FILE_NAME)
+
+    call nc_check(trim(FILE_NAME), nf90_open(trim(FILE_NAME), nf90_write, ncid), "nc_add_var_attr_numeric :: open")
+    call nc_check(trim(FILE_NAME), nf90_redef(ncid), "nc_add_var_attr_numeric :: redef mode")
+    call nc_check(trim(FILE_NAME), nf90_inq_varid(ncid, trim(varname), varid), "nc_add_var_attr_numeric :: inq varid")
+    call nc_check(trim(FILE_NAME), nf90_put_att(ncid, varid, trim(attrname), attrval), "nc_add_var_attr_numeric :: put "//trim(attrname))
+    call nc_check(trim(FILE_NAME), nf90_enddef(ncid), "nc_add_var_attr_numeric :: end def")
+    call nc_check(trim(FILE_NAME), nf90_close(ncid), "nc_add_var_attr_numeric :: close")
+
+    FMT2, trim(attrname), " added successfully"
+
+    return
+  end subroutine nc_add_var_attr_numeric
   !===========================================
   subroutine nc_write_real_1d(FILE_NAME, datain, varname, nvals)
     !---------------------------------------------
@@ -472,6 +556,52 @@ call nc_check(trim(fname), nf90_get_var(ncid, varid, dataout, start=start, count
     return
   end subroutine nc_get_file_dims
   !===========================================
+  subroutine nc_get_file_vars(fname, nvars, varnames, vartypes, vardims)
+    !---------------------------------------------
+    ! Inquire the variables of a file
+    ! All outputs are optional
+    ! Output: nvars, varnames, vartypes, vardims
+    !---------------------------------------------
+    character(len=*), intent(in)  :: fname
+    integer, intent(out), optional :: nvars
+    character(len=*), allocatable, intent(out), optional :: varnames(:)
+    integer, allocatable, intent(out), optional :: vartypes(:)
+    integer, allocatable, intent(out), optional :: vardims(:)
+    integer :: ncid, numvars
+    integer :: i
+
+    call nc_check(trim(fname), nf90_open(fname, nf90_nowrite, ncid), "get_file_vars :: open")
+    call nc_check(trim(fname), nf90_inquire(ncid, nVariables=numvars), "get_file_vars :: inquire")
+    if (present(nvars)) then
+      nvars = numvars
+    end if
+
+    if (present(varnames)) then
+      allocate (varnames(numvars))
+      do i = 1, numvars
+        call nc_check(trim(fname), nf90_inquire_variable(ncid, i, name=varnames(i)), "get_file_vars :: inquire_variable")
+      end do
+    end if
+
+    if (present(vartypes)) then
+      allocate (vartypes(numvars))
+      do i = 1, numvars
+        call nc_check(trim(fname), nf90_inquire_variable(ncid, i, xtype=vartypes(i)), "get_file_vars :: inquire_variable")
+      end do
+    end if
+
+    if (present(vardims)) then
+      allocate (vardims(numvars))
+      do i = 1, numvars
+        call nc_check(trim(fname), nf90_inquire_variable(ncid, i, ndims=vardims(i)), "get_file_vars :: inquire_variable")
+      end do
+    end if
+
+    call nc_check(trim(fname), nf90_close(ncid), "get_file_vars :: close")
+
+    return
+  end subroutine nc_get_file_vars
+  !===========================================
   subroutine nc_get_var_dims(fname, vname, ndims, dimnames, dimlens)
     !---------------------------------------------
     ! Inquire the dimensions of a variable
@@ -568,6 +698,64 @@ call nc_check(trim(fname), nf90_get_var(ncid, varid, dataout, start=start, count
 
     return
   end function nc_attr_exists
+  !===========================================
+  subroutine nc_get_glob_attr_text(fname, attrname, attr_text)
+
+    character(len=*), intent(in) :: fname
+    character(len=*), intent(in) :: attrname
+    character(len=256), intent(out) :: attr_text
+    integer                      :: ncid
+
+    call nc_check(trim(fname), nf90_open(fname, nf90_nowrite, ncid), "nc_get_glob_attr_text :: open")
+    call nc_check(trim(fname), nf90_get_att(ncid, nf90_global, trim(attrname), attr_text), "nc_get_glob_attr_text :: get_attr '"//trim(attrname)//"'")
+    call nc_check(trim(fname), nf90_close(ncid), "nc_get_glob_attr_text :: close")
+
+  end subroutine nc_get_glob_attr_text
+  !===========================================
+  subroutine nc_get_glob_attr_numeric(fname, attrname, attr_val)
+
+    character(len=*), intent(in) :: fname
+    character(len=*), intent(in) :: attrname
+    real(rk), intent(out)        :: attr_val
+    integer                      :: ncid
+
+    call nc_check(trim(fname), nf90_open(fname, nf90_nowrite, ncid), "nc_get_glob_attr_numeric :: open")
+call nc_check(trim(fname), nf90_get_att(ncid, nf90_global, trim(attrname), attr_val), "nc_get_glob_attr_numeric :: get_attr '"//trim(attrname)//"'")
+    call nc_check(trim(fname), nf90_close(ncid), 'nc_get_glob_attr_numeric :: close')
+
+    return
+  end subroutine nc_get_glob_attr_numeric
+  !===========================================
+  subroutine nc_get_var_attr_text(fname, vname, attrname, attr_text)
+
+    character(len=*), intent(in) :: fname
+    character(len=*), intent(in) :: vname
+    character(len=*), intent(in) :: attrname
+    character(len=256), intent(out) :: attr_text
+    integer                      :: ncid, varid
+
+    call nc_check(trim(fname), nf90_open(fname, nf90_nowrite, ncid), "nc_get_var_attr_text :: open")
+    call nc_check(trim(fname), nf90_inq_varid(ncid, trim(vname), varid), "nc_get_var_attr_text :: inq_var_id "//trim(vname))
+    call nc_check(trim(fname), nf90_get_att(ncid, varid, trim(attrname), attr_text), "nc_get_var_attr_text :: get_attr '"//trim(attrname)//"'")
+    call nc_check(trim(fname), nf90_close(ncid), "nc_get_var_attr_text :: close")
+
+  end subroutine nc_get_var_attr_text
+  !===========================================
+  subroutine nc_get_var_attr_numeric(fname, vname, attrname, attr_val)
+
+    character(len=*), intent(in) :: fname
+    character(len=*), intent(in) :: vname
+    character(len=*), intent(in) :: attrname
+    real(rk), intent(out)                      :: attr_val
+    integer                      :: ncid, varid
+
+    call nc_check(trim(fname), nf90_open(fname, nf90_nowrite, ncid), "nc_get_var_attr_numeric :: open")
+    call nc_check(trim(fname), nf90_inq_varid(ncid, trim(vname), varid), "nc_get_var_attr_numeric :: inq_var_id "//trim(vname))
+call nc_check(trim(fname), nf90_get_att(ncid, varid, trim(attrname), attr_val), "nc_get_var_attr_numeric :: get_attr '"//trim(attrname)//"'")
+    call nc_check(trim(fname), nf90_close(ncid), 'nc_get_var_attr_numeric :: close')
+
+    return
+  end subroutine nc_get_var_attr_numeric
   !===========================================
   logical function nc_var_exists(fname, vname)
 

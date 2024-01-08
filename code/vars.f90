@@ -76,6 +76,16 @@ module time_vars
 
 end module time_vars
 !===================================================
+module postprocess_vars
+  use mod_precdefs
+  use mod_postprocess
+
+  integer               :: postprocessor_output_frequency ! Output frequency in time steps
+  real(rk)              :: postprocessor_grid_size ! Grid size in meters
+  type(t_postprocessor) :: postprocessor
+
+end module postprocess_vars
+!===================================================
 module field_vars
   !----------------------------------------------------------------
   ! This includes variables related to the hydrodynamic data

@@ -29,8 +29,11 @@ module mod_initialise
                         g, k_b, kin_visc_default, sw_rho_default, &
                         diffusion_hor_const, diffusion_vert_const, run_3d, &
                         Cm_smagorinsky, resuspension_coeff, resuspension_threshold, roughness_height
-  use mod_output, only: init_output
+  use mod_output, only: init_output, outDir
   use mod_random, only: init_rng
+  use mod_postprocess
+  use utils, only: insert_before_extension
+  use postprocess_vars, only: postprocessor, postprocessor_output_frequency, postprocessor_grid_size
   implicit none
   private
   !===================================================
@@ -71,6 +74,7 @@ contains
       xdimname, ydimname, zdimname, &
       uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
       tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, vdiffvarname, zax_style, zax_direction
+    namelist /postprocessor_vars/ postprocessor_output_frequency, postprocessor_grid_size
 
     FMT1, "======== Init namelist ========"
 
@@ -81,6 +85,7 @@ contains
     read (NMLFILE, nml=particle_vars, iostat=ierr); if (ierr .ne. 0) call throw_error("initialise :: init_namelist", "Could not read 'particle_vars' namelist", ierr)
     read (NMLFILE, nml=time_vars, iostat=ierr); if (ierr .ne. 0) call throw_error("initialise :: init_namelist", "Could not read 'time_vars' namelist", ierr)
     read (NMLFILE, nml=field_vars, iostat=ierr); if (ierr .ne. 0) call throw_error("initialise :: init_namelist", "Could not read 'field_vars' namelist", ierr)
+    read (NMLFILE, nml=postprocessor_vars, iostat=ierr); if (ierr .ne. 0) call throw_error("initialise :: init_namelist", "Could not read 'postprocessor_vars' namelist", ierr)
     close (NMLFILE, iostat=ierr)
     if (ierr .ne. 0) call throw_error('initialise :: init_namelist', "Failed to close "//trim(nmlfilename), ierr)
 
@@ -140,6 +145,9 @@ contains
     FMT3, var2val_char(vdiffvarname)
     FMT3, var2val(zax_style)
     FMT3, var2val(zax_direction)
+    FMT2, "&postprocessor_vars"
+    FMT3, var2val(postprocessor_output_frequency)
+    FMT3, var2val(postprocessor_grid_size)
 
     FMT2, "Finished init namelist"
 
@@ -356,18 +364,46 @@ contains
 
   end subroutine init_particles
   !===========================================
+  subroutine init_postprocessor
+    character(len=LEN_CHAR_L) :: filename, restart_filename
+    logical :: file_exists
+
+    filename = trim(outDir)//"/"//trim(runid)//".post.nc"
+    if (restart) then
+      restart_filename = trim(restart_path)//"/"//trim(runid)//".post.restart.nc"
+      inquire (file=trim(restart_filename), exist=file_exists)
+      if (.not. file_exists) then
+        call throw_error("initialise :: init_postprocessor", "Restart file does not exist: "//trim(restart_filename))
+      end if
+      postprocessor = postprocessor%from_restart(domain, restart_filename)
+    else
+      postprocessor = t_postprocessor(domain, postprocessor_grid_size)
+      call postprocessor%add_measure("total_count", "particles in bin", "accumulator")
+      call postprocessor%add_measure("count", "particles in bin", "snapshot")
+      call postprocessor%add_measure("total_age", "age", "s", "accumulator")
+      call postprocessor%add_measure("age", "age", "s", "snapshot")
+      call postprocessor%add_measure("total_distance", "traj_len", "m", "accumulator")
+      call postprocessor%add_measure("distance", "traj_len", "m", "snapshot")
+    end if
+    call postprocessor%init_output(filename, postprocessor_output_frequency)
+    restart_filename = insert_before_extension(filename, ".restart")
+    call postprocessor%init_restart(restart_filename)
+
+  end subroutine init_postprocessor
+  !===========================================
   subroutine init_model
     !---------------------------------------------
     ! Call all the subroutines to initialise the model
     !---------------------------------------------
 
+    call init_rng                      ! random.f90
     call init_namelist                 ! init.f90
     call init_domain                   ! init.f90
     call init_time                     ! init.f90
     call init_fieldset                 ! init.f90
     call init_particles                ! init.f90
     call init_output                   ! output.f90
-    call init_rng                      ! random.f90
+    call init_postprocessor            ! output.f90
 
   end subroutine init_model
 
