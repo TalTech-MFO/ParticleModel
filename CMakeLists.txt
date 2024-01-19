@@ -52,11 +52,11 @@ include_directories(${NETCDF_INCLUDE_DIR})
 #=================================
 # Set the default build type to Release
 if(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Release)
 endif()
 
 # Set the compiler flags
-set(CMAKE_Fortran_FLAGS "-cpp -Wall -ffree-line-length-none -Wcharacter-truncation -Wsurprising -Waliasing -Wimplicit-interface -Wunused-parameter -fwhole-file -fcheck=all -fbacktrace -mcmodel=large")
+set(CMAKE_Fortran_FLAGS "-cpp -Wall -ffree-line-length-none -Wcharacter-truncation -Wsurprising -Waliasing -Wimplicit-interface -Wunused-parameter -fwhole-file -fcheck=all -fbacktrace -mcmodel=large -march=native")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DSNAP_TO_BOUNDS -DSMAGORINSKY_INTERP_UV -DPARTICLE_SNAP_SEALVL -DIGNORE_BAD_PARTICLES -DBIOFOULING_SIMPLE -DNO_DIFFUSE_VERTICAL")
 
 # Set the optimization flags for the release configuration
@@ -64,6 +64,13 @@ set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -g -DUSE_OMP -fopenmp")
 
 # Set the debugging flags for the debug configuration
 set(CMAKE_Fortran_FLAGS_DEBUG "-O3 -g -DDEBUG")
+
+# Set the profile flag
+option(BUILD_FOR_PROFILING "Build with -pg and -no-pie flags" OFF)
+if (BUILD_FOR_PROFILING)
+    message(STATUS "Configuring with -pg and -no-pie")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -pg -no-pie")
+endif()
 
 # Add the executable target
 add_executable(${PROJECT_NAME} ${SOURCES})
