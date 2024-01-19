@@ -3,6 +3,7 @@ module mod_measure
   !----------------------------------------------------------------
   ! [module description]
   !----------------------------------------------------------------
+  use mod_errors
   use mod_precdefs
   use mod_variable
   use mod_particle
@@ -24,16 +25,16 @@ module mod_measure
   end type t_measure
   !---------------------------------------------
   abstract interface
-    subroutine run_func(this, p, i, j)
+    subroutine run_func(this, p, i, j, k)
       import :: t_measure, t_particle
       class(t_measure), intent(inout) :: this
       type(t_particle), intent(in) :: p
-      integer, intent(in) :: i, j
+      integer, intent(in) :: i, j, k
     end subroutine run_func
     function get_func(this) result(res)
       import :: t_measure, rk
       class(t_measure), intent(inout) :: this
-      real(rk), dimension(:, :), allocatable :: res
+      real(rk), dimension(:, :, :), allocatable :: res
     end function get_func
     subroutine reset_func(this)
       import :: t_measure
@@ -47,12 +48,7 @@ module mod_measure
     subroutine set_func(this, data)
       import :: t_measure, rk
       class(t_measure), intent(inout) :: this
-      real(rk), intent(in) :: data(:, :)
+      real(rk), intent(in) :: data(:, :, :)
     end subroutine set_func
   end interface
-  !===================================================
-contains
-  !===========================================
-  ! [subroutine/function definition]
-
 end module mod_measure

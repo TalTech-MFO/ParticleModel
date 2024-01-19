@@ -81,7 +81,8 @@ module postprocess_vars
   use mod_postprocess
 
   integer               :: postprocessor_output_frequency ! Output frequency in time steps
-  real(rk)              :: postprocessor_grid_size ! Grid size in meters
+  real(rk)              :: postprocessor_grid_size        ! Grid size in meters
+  integer               :: postprocessor_nlevels          ! Number of vertical levels
   type(t_postprocessor) :: postprocessor
 
 end module postprocess_vars

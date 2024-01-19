@@ -33,7 +33,7 @@ module mod_initialise
   use mod_random, only: init_rng
   use mod_postprocess
   use utils, only: insert_before_extension
-  use postprocess_vars, only: postprocessor, postprocessor_output_frequency, postprocessor_grid_size
+  use postprocess_vars, only: postprocessor, postprocessor_output_frequency, postprocessor_grid_size, postprocessor_nlevels
   implicit none
   private
   !===================================================
@@ -74,7 +74,7 @@ contains
       xdimname, ydimname, zdimname, &
       uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
       tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, vdiffvarname, zax_style, zax_direction
-    namelist /postprocessor_vars/ postprocessor_output_frequency, postprocessor_grid_size
+    namelist /postprocessor_vars/ postprocessor_output_frequency, postprocessor_grid_size, postprocessor_nlevels
 
     FMT1, "======== Init namelist ========"
 
@@ -148,6 +148,7 @@ contains
     FMT2, "&postprocessor_vars"
     FMT3, var2val(postprocessor_output_frequency)
     FMT3, var2val(postprocessor_grid_size)
+    FMT3, var2val(postprocessor_nlevels)
 
     FMT2, "Finished init namelist"
 
@@ -377,13 +378,19 @@ contains
       end if
       postprocessor = postprocessor%from_restart(domain, restart_filename)
     else
-      postprocessor = t_postprocessor(domain, postprocessor_grid_size)
+      postprocessor = t_postprocessor(domain, postprocessor_grid_size, postprocessor_nlevels)
       call postprocessor%add_measure("total_count", "particles in bin", "accumulator")
+      call postprocessor%add_measure("total_count_bottom", "particles in bin", "accumulator", bottom=.true.)
       call postprocessor%add_measure("count", "particles in bin", "snapshot")
-      call postprocessor%add_measure("total_age", "age", "s", "accumulator")
-      call postprocessor%add_measure("age", "age", "s", "snapshot")
-      call postprocessor%add_measure("total_distance", "traj_len", "m", "accumulator")
-      call postprocessor%add_measure("distance", "traj_len", "m", "snapshot")
+      call postprocessor%add_measure("count_bottom", "particles in bin", "snapshot", bottom=.true.)
+      call postprocessor%add_measure("total_age", "s", "accumulator", variable_name="age")
+      call postprocessor%add_measure("total_age_bottom", "s", "accumulator", bottom=.true., variable_name="age")
+      call postprocessor%add_measure("age", "s", "snapshot", variable_name="age")
+      call postprocessor%add_measure("age_bottom", "s", "snapshot", bottom=.true., variable_name="age")
+      call postprocessor%add_measure("total_distance", "m", "accumulator", variable_name="traj_len")
+      call postprocessor%add_measure("total_distance_bottom", "m", "accumulator", bottom=.true., variable_name="traj_len")
+      call postprocessor%add_measure("distance", "m", "snapshot", variable_name="traj_len")
+      call postprocessor%add_measure("distance_bottom", "m", "snapshot", bottom=.true., variable_name="traj_len")
     end if
     call postprocessor%init_output(filename, postprocessor_output_frequency)
     restart_filename = insert_before_extension(filename, ".restart")

@@ -171,6 +171,7 @@
 &postprocessor_vars
   postprocessor_output_frequency = 10
   postprocessor_grid_size = 1000.0
+  postprocessor_nlevels = 10
 /
 !===============================
 ! Output variables
