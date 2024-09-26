@@ -1,4 +1,4 @@
-Updated: Fri Jan 19 14:22:51 EET 2024
+Updated: Thu Sep 26 14:11:05 EEST 2024
 code/datetime.f90-68-  type(t_datetime) function ctor_datetime(date_str) result(res)
 code/datetime.f90-69-    !---------------------------------------------
 code/datetime.f90-70-    ! Constructor for datetime
@@ -92,21 +92,21 @@ code/fieldset.f90-1547-          ! overwritten. Maybe add a "to be modified" fla
 code/fieldset.f90-1548-          ! kind of use of the where(u_mask == ...) statement
 code/fieldset.f90-1549-          ! ! WAIT... I might be wrong...
 --
-code/init.f90-193-  subroutine init_fieldset
-code/init.f90-194-    !---------------------------------------------
-code/init.f90-195-    ! Initialise the fieldset
-code/init.f90:196:    ! TODO: Fix memory calculation
-code/init.f90-197-    !---------------------------------------------
-code/init.f90-198-    character(len=LEN_CHAR_L)              :: initPath
-code/init.f90-199-    character(len=LEN_CHAR_L)              :: filename
+code/init.f90-194-  subroutine init_fieldset
+code/init.f90-195-    !---------------------------------------------
+code/init.f90-196-    ! Initialise the fieldset
+code/init.f90:197:    ! TODO: Fix memory calculation
+code/init.f90-198-    !---------------------------------------------
+code/init.f90-199-    character(len=LEN_CHAR_L)              :: initPath
+code/init.f90-200-    character(len=LEN_CHAR_L)              :: filename
 --
-code/init.f90-280-
-code/init.f90-281-      if (nc_var_exists(trim(filename), trim(elevvarname))) then
-code/init.f90-282-        call fieldset%add_field("ELEV", elevvarname)
-code/init.f90:283:        ! TODO: set_elev for faster lookup
-code/init.f90-284-      end if
-code/init.f90-285-    end if
-code/init.f90-286-    !---------------------------------------------
+code/init.f90-281-
+code/init.f90-282-      if (nc_var_exists(trim(filename), trim(elevvarname))) then
+code/init.f90-283-        call fieldset%add_field("ELEV", elevvarname)
+code/init.f90:284:        ! TODO: set_elev for faster lookup
+code/init.f90-285-      end if
+code/init.f90-286-    end if
+code/init.f90-287-    !---------------------------------------------
 --
 code/interp.f90-57-    !      c_k
 code/interp.f90-58-    !        1 - bottom point along y-axis
@@ -164,13 +164,13 @@ code/vars.f90-21-  !   viscosity and density defaults in namelist?
 code/vars.f90-22-  !----------------------------------------------------------------
 code/vars.f90-23-  use mod_precdefs
 --
-code/vars.f90-95-  use mod_fieldset
-code/vars.f90-96-
-code/vars.f90-97-  logical                   :: has_subdomains, &               ! Is the data in multiple files (true) or one file (false)?
-code/vars.f90:98:                               has_bottom_stress               ! TODO: bottom_stress_method
-code/vars.f90-99-  integer                   :: zax_style, &                    ! Depth values (1) or layer thickness (2)
-code/vars.f90-100-                               zax_direction, &                ! > 0 - positive up, < 0 - positive down
-code/vars.f90-101-                               density_method, &               ! 0 - default density, 1 - has variable, 2 - calculate from T/S
+code/vars.f90-96-  use mod_fieldset
+code/vars.f90-97-
+code/vars.f90-98-  logical                   :: has_subdomains, &               ! Is the data in multiple files (true) or one file (false)?
+code/vars.f90:99:                               has_bottom_stress               ! TODO: bottom_stress_method
+code/vars.f90-100-  integer                   :: zax_style, &                    ! Depth values (1) or layer thickness (2)
+code/vars.f90-101-                               zax_direction, &                ! > 0 - positive up, < 0 - positive down
+code/vars.f90-102-                               density_method, &               ! 0 - default density, 1 - has variable, 2 - calculate from T/S
 --
 code/vertical_motion.f90-61-    !---------------------------------------------
 code/vertical_motion.f90-62-    ! Gives a settled particle vertical velocity if

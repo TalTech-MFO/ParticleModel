@@ -26,7 +26,7 @@ module mod_loop
                         write_data_only_active, &
 #endif
                         write_restart, write_all_particles, write_active_particles
-  use postprocess_vars, only: postprocessor
+  use postprocess_vars, only: postprocessor, enable_postprocessing
   implicit none
   private
   !===================================================
@@ -131,16 +131,24 @@ contains
 #endif
         call particles(ipart)%update(fieldset, time, dt)
 
+#ifndef USE_VECTORIZED_POSTPROCESSING
         !---------------------------------------------
         ! Postprocessing
-        call postprocessor%after_timestep(particles(ipart))
+        if (enable_postprocessing) then 
+          call postprocessor%after_timestep(particles(ipart))
+        end if
+#endif
 
       end do
       END_OMP_DO
 
-      ! !---------------------------------------------
-      ! ! Postprocessing
-      ! call postprocessor%after_timestep(particles, runparts)
+#ifdef USE_VECTORIZED_POSTPROCESSING
+      !---------------------------------------------
+      ! Postprocessing
+      if (enable_postprocessing) then
+        call postprocessor%after_timestep(particles(:runparts))
+      end if
+#endif
 
       !---------------------------------------------
       ! Update time
@@ -155,7 +163,9 @@ contains
 #endif
       end if
 
-      call postprocessor%save(itime, theDate)
+      if (enable_postprocessing) then 
+        call postprocessor%save(itime, theDate)
+      end if
 
       !---------------------------------------------
       ! Write restart (save after updating the date so it could be used as initial state later)

@@ -1,8 +1,18 @@
 # Minimum version of CMake required
 cmake_minimum_required(VERSION 3.12)
 
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if (NOT CMAKE_Fortran_COMPILER)
+    message(STATUS "Selecting gfortran 13")
+    set(CMAKE_Fortran_COMPILER gfortran-13)
+endif()
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
+
 # Set the name of the project
 project(ParticleModel Fortran)
+
 
 #=================================
 # Source paths
@@ -15,7 +25,17 @@ set(INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Add the source files
 file(GLOB SOURCES ${SRC_DIR}/*.f90)
-file(GLOB PP_SOURCES ${SRC_DIR}/postprocessing/*.f90)
+option(USE_VECTORIZED_POSTPROCESSING "Use the vectorized postprocessing implementation" OFF)
+if (USE_VECTORIZED_POSTPROCESSING)
+    message(STATUS "Using vectorized postprocessing implementation")
+    set(PP_DIR ${SRC_DIR}/postprocessing_vectorized)
+    # Add a preprocessor definition
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DUSE_VECTORIZED_POSTPROCESSING")
+else()
+    message(STATUS "Using non-vectorized postprocessing implementation")
+    set(PP_DIR ${SRC_DIR}/postprocessing)
+endif()
+file(GLOB PP_SOURCES ${PP_DIR}/*.f90)
 list(APPEND SOURCES ${PP_SOURCES})
 
 # Add the include directories
@@ -56,7 +76,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the compiler flags
-set(CMAKE_Fortran_FLAGS "-cpp -Wall -ffree-line-length-none -Wcharacter-truncation -Wsurprising -Waliasing -Wimplicit-interface -Wunused-parameter -fwhole-file -fcheck=all -fbacktrace -mcmodel=large -march=native")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -Wall -ffree-line-length-none -Wcharacter-truncation -Wsurprising -Waliasing -Wimplicit-interface -Wunused-parameter -fwhole-file -fcheck=all -fbacktrace -mcmodel=large -march=native")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DSNAP_TO_BOUNDS -DSMAGORINSKY_INTERP_UV -DPARTICLE_SNAP_SEALVL -DIGNORE_BAD_PARTICLES -DBIOFOULING_SIMPLE -DNO_DIFFUSE_VERTICAL")
 
 # Set the optimization flags for the release configuration
@@ -71,6 +91,7 @@ if (BUILD_FOR_PROFILING)
     message(STATUS "Configuring with -pg and -no-pie")
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -pg -no-pie")
 endif()
+
 
 # Add the executable target
 add_executable(${PROJECT_NAME} ${SOURCES})

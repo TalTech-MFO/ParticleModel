@@ -80,6 +80,7 @@ module postprocess_vars
   use mod_precdefs
   use mod_postprocess
 
+  logical               :: enable_postprocessing          ! Do postprocessing or not?
   integer               :: postprocessor_output_frequency ! Output frequency in time steps
   real(rk)              :: postprocessor_grid_size        ! Grid size in meters
   integer               :: postprocessor_nlevels          ! Number of vertical levels

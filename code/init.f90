@@ -33,7 +33,7 @@ module mod_initialise
   use mod_random, only: init_rng
   use mod_postprocess
   use utils, only: insert_before_extension
-  use postprocess_vars, only: postprocessor, postprocessor_output_frequency, postprocessor_grid_size, postprocessor_nlevels
+  use postprocess_vars, only: postprocessor, postprocessor_output_frequency, postprocessor_grid_size, postprocessor_nlevels, enable_postprocessing
   implicit none
   private
   !===================================================
@@ -74,7 +74,7 @@ contains
       xdimname, ydimname, zdimname, &
       uvarname, vvarname, wvarname, zaxvarname, elevvarname, rhovarname, &
       tempvarname, saltvarname, viscvarname, taubxvarname, taubyvarname, vdiffvarname, zax_style, zax_direction
-    namelist /postprocessor_vars/ postprocessor_output_frequency, postprocessor_grid_size, postprocessor_nlevels
+    namelist /postprocessor_vars/ enable_postprocessing, postprocessor_output_frequency, postprocessor_grid_size, postprocessor_nlevels
 
     FMT1, "======== Init namelist ========"
 
@@ -146,6 +146,7 @@ contains
     FMT3, var2val(zax_style)
     FMT3, var2val(zax_direction)
     FMT2, "&postprocessor_vars"
+    FMT3, var2val(enable_postprocessing)
     FMT3, var2val(postprocessor_output_frequency)
     FMT3, var2val(postprocessor_grid_size)
     FMT3, var2val(postprocessor_nlevels)
@@ -368,6 +369,11 @@ contains
   subroutine init_postprocessor
     character(len=LEN_CHAR_L) :: filename, restart_filename
     logical :: file_exists
+
+    if (.not. enable_postprocessing) then
+      FMT2, "Postprocessing is disabled"
+      return
+    end if
 
     filename = trim(outDir)//"/"//trim(runid)//".post.nc"
     if (restart) then
