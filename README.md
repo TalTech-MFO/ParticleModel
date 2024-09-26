@@ -3,33 +3,33 @@
 
 ## Installing
 
-Download the code using:
+Download the code:
 
 ```
 git clone https://github.com/rix71/ParticleModel.git
 ```
 
-Or do a recursive clone, if you want the postprocessor as well.
-
-**NB! The postprocessor is still a work-in-progress.** Better use your own scripts for now.
-
----
-
-Installing is as easy as:
+Configure and build:
 
 ```
-cd ParticleModel/code
-make
+cd ParticleModel
+cmake -B build
+cmake --build build
 ```
 
-If you change nothing in the `Makefile`, your executable should be in `particle_model/bin` directory.
+There are no dependencies other than netCDF. You should have `nf-config` available in your path.
 
-### But...
+Before running `cmake`, have a look at the `include/output.h` file. Select output variables by commenting/uncommenting lines in `include/output.h`. Particle position will always be written.
 
-Before running `make`, have a look at the `Makefile` and `include/output.h` files.
+## Running the model
 
-- Comment/uncomment compiler flags in `Makefile` to disable/enable e.g., openMP, debug features or select the biofouling model (only "simple" implemented at the moment).
-- Select output variables by commenting/uncommenting lines in `include/output.h`. Particle position will always be written.
+To run the model, run the `ParticleModel` executable in your run directory:
+```bash
+/path/to/executable/ParticleModel [-nml general_namelist_file] [-bnml biofouling_namelist_file]
+```
+The `-nml` and `-bnml` flags are optional and specify the general and biofouling namelist files, respectively. If not specified, the model will look for `input.nml` and `biofouling.nml` in the run directory.
+The namelist templates for setting the model parameters are in the `nml` directory, along with a helper script to generate the namelists from environment variables (requires the [f90nml](https://github.com/marshallward/f90nml) package). For setting the namelist parameters, you can copy and modify the run scripts in the `scripts/run` directory.
+
 
 ## TODO
 

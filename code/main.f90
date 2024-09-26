@@ -43,7 +43,7 @@ contains
       case ('-h', '--help')
         call print_help()
         stop
-      case ('-c', '--compile')
+      case ('-c', '--compile-info')
         call print_compile_info()
         stop
       case ('--variables')
@@ -81,7 +81,7 @@ contains
     FMT1, ""
     FMT1, "Command line options:"
     FMT2, "-h, --help                               print this help message and exit"
-    FMT2, "-c, --compile                            print compliation options and exit"
+    FMT2, "-c, --compile-info                       print compliation options and exit"
     FMT2, "--variables                              print output variables and exit"
     FMT2, "-nml, --namelist <filename>              use <filename> as namelist (default: input.inp)"
     FMT2, "-bnml, --biofouling-namelist <filename>  use <filename> as biofouling namelist (default: biofouling.inp)"

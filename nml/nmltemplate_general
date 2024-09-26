@@ -18,6 +18,7 @@
 ! do_diffusion           - [bool]  Diffuse particles if True
 ! do_velocity            - [bool]  Calculate particles' own velocity (True)
 !                                  or advect with current speed (False)
+! do_biofouling          - [bool]  Enable biofouling
 ! run_3d                 - [bool]  Do 3D simulation
 ! advection_method       - [int]   Advection scheme
 !                                  0 - no advection

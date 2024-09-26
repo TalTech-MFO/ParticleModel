@@ -1,5 +1,5 @@
 !===============================
-! Biofouling variables (Simple model)
+! Biofouling variables (Chl-a proxy model)
 !-------------------------------
 ! growth_init_threshold - [float] Minimum concentration of chl-a to begin biofouling [mg/m3]
 ! growth_timescale      - [float] Biofouling (saturation) time scale [s]
