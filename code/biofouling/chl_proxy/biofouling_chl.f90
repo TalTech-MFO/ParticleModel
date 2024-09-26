@@ -5,7 +5,9 @@ module mod_biofouling
   ! Biological growth on microplastic particles. Simple model that
   ! uses chl-a concentration as a proxy for the growth of biofilm.
   ! Reference:
-  ! ! Add reference here
+  !   Murawski, J., She, J., & Frishfelds, V. (2022). 
+  !   Modeling drift and fate of microplastics in the Baltic Sea. 
+  !   Frontiers in Marine Science, 9(September), 1–20. https://doi.org/10.3389/fmars.2022.886295
   !----------------------------------------------------------------
   use mod_precdefs
   use mod_errors

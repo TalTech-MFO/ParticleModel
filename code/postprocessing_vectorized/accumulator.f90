@@ -2,7 +2,7 @@
 #include "particle.h"
 module mod_accumulator
   !----------------------------------------------------------------
-  ! [module description]
+  ! Accumulated properties (i.e. the grid is NOT reset after each time step).
   !----------------------------------------------------------------
   use mod_precdefs
   use mod_errors

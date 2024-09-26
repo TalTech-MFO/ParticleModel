@@ -37,11 +37,7 @@ contains
 
     call fieldset%domain%lonlat2xy(p%lon1, p%lat1, x0, y0)
 
-#if defined(SMAGORINSKY_INTERP_UV)
     Ah = max(Ah_Smagorinsky(fieldset, time, i, j), diffusion_hor_const)
-#elif defined(SMAGORINSKY_FULL_FIELD)
-    Ah = get_Ah_Smagorinsky_full_field(fieldset, i, j)
-#endif
 
     du = unit_random() * sqrt(2_rk * Ah * dt) / dt
     dv = unit_random() * sqrt(2_rk * Ah * dt) / dt

@@ -6,17 +6,9 @@ program main
 #ifdef WRITESTDOUT
   use run_params, only: runid
 #endif
-  use run_params, only: dry_run, nmlfilename
-! TODO: General biofouling flag
-#if (defined(BIOFOULING_KOOI) || defined(BIOFOULING_TSIARAS) || defined(BIOFOULING_SIMPLE))
-  use run_params, only: biofouling_nmlfilename
-#endif
+  use run_params, only: dry_run, nmlfilename, biofouling_nmlfilename
   use mod_initialise, only: init_run, init_model
   use mod_loop, only: loop
-  ! use mod_output, only: init_output
-#ifdef POSTPROCESS
-  use mod_postprocessing, only: postprocess
-#endif
   implicit none
   !===================================================
   call command_line
@@ -29,9 +21,6 @@ program main
   !---------------------------------------------
   if (.not. dry_run) then
     call loop
-#ifdef POSTPROCESS
-    call postprocess
-#endif
   else
     FMT1, LINE; FMT1, "Will not loop!"; FMT1, LINE
   end if
@@ -63,11 +52,9 @@ contains
       case ('-nml', '--namelist')
         call getarg(i + 1, nmlfilename)
         i = i + 1
-#if (defined(BIOFOULING_KOOI) || defined(BIOFOULING_TSIARAS) || defined(BIOFOULING_SIMPLE))
       case ('-bnml', '--biofouling-namelist')
         call getarg(i + 1, biofouling_nmlfilename)
         i = i + 1
-#endif
       case default
         ERROR, "Command line argument not recognised: "//trim(arg)
         call print_help()
@@ -97,9 +84,7 @@ contains
     FMT2, "-c, --compile                            print compliation options and exit"
     FMT2, "--variables                              print output variables and exit"
     FMT2, "-nml, --namelist <filename>              use <filename> as namelist (default: input.inp)"
-#if (defined(BIOFOULING_KOOI) || defined(BIOFOULING_TSIARAS) || defined(BIOFOULING_SIMPLE))
     FMT2, "-bnml, --biofouling-namelist <filename>  use <filename> as biofouling namelist (default: biofouling.inp)"
-#endif
     FMT1, ""
 
     return
@@ -143,24 +128,6 @@ contains
 #endif
 #ifdef NO_DIFFUSE_VERTICAL
     FMT2, "-NO_DIFFUSE_VERTICAL"
-#endif
-#ifdef SMAGORINSKY_FULL_FIELD
-    FMT2, "-SMAGORINSKY_FULL_FIELD"
-#endif
-#ifdef SMAGORINSKY_INTERP_UV
-    FMT2, "-SMAGORINSKY_INTERP_UV"
-#endif
-#ifdef POSTPROCESS
-    FMT2, "-POSTPROCESS"
-#endif
-#ifdef BIOFOULING_KOOI
-    FMT2, "-BIOFOULING_KOOI"
-#endif
-#ifdef BIOFOULING_SIMPLE
-    FMT2, "-BIOFOULING_SIMPLE"
-#endif
-#ifdef BIOFOULING_TSIARAS
-    FMT2, "-BIOFOULING_TSIARAS"
 #endif
 #ifdef IGNORE_BAD_PARTICLES
     FMT2, "-IGNORE_BAD_PARTICLES"

@@ -64,7 +64,9 @@ contains
       time = fieldset%get_time(theDate)
 
       !   - reset postprocessor fields (if needed)
-      call postprocessor%reset_measures()
+      if (enable_postprocessing) then 
+        call postprocessor%reset_measures()
+      endif
 
       !   - release particles
       call release_particles(itime, theDate, fieldset, time)
@@ -112,12 +114,8 @@ contains
           ! - do advection
           call advect(particles(ipart), fieldset, time, advection_method, run_3d)
           ! - do biofouling
-#ifdef BIOFOULING_KOOI
-          if (do_biofouling) call biofouling(particles(ipart), fieldset, time, theDate)
-#else
           if (do_biofouling) call biofouling(particles(ipart), fieldset, time)
-#endif
-          ! - do Kooi vertical velocity
+          ! - do vertical velocity
           if (do_velocity .and. run_3d) call vertical_velocity(particles(ipart), fieldset, time)
           ! - do diffusion
           if (do_diffusion) call diffuse(particles(ipart), fieldset, time, run_3d)

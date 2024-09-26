@@ -1,7 +1,9 @@
 #include "cppdefs.h"
 module mod_measure
   !----------------------------------------------------------------
-  ! [module description]
+  ! Base class for all measures.
+  ! Measures are the properties that are mapped to
+  ! the grid (e.g., count, age, etc.)
   !----------------------------------------------------------------
   use mod_errors
   use mod_precdefs

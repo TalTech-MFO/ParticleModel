@@ -1,6 +1,3 @@
-#ifdef SMAGORINSKY_FULL_FIELD
-#error SMAGORINSKY_FULL_FIELD not implemented
-#endif
 #include "cppdefs.h"
 #include "field.h"
 module mod_physics

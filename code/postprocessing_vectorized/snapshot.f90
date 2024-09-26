@@ -2,7 +2,8 @@
 #include "particle.h"
 module mod_snapshot
   !----------------------------------------------------------------
-  ! [module description]
+  ! Instantaneous measures (snapshots) of the particle properties.
+  ! The grid is reset every time step.
   !----------------------------------------------------------------
   use mod_precdefs
   use mod_errors

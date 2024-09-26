@@ -1,7 +1,8 @@
 #include "cppdefs.h"
 module mod_postprocess
   !----------------------------------------------------------------
-  ! [module description]
+  ! Module for mapping particles to a (2D or 3D) grid during model execution
+  ! Called after each time step
   !----------------------------------------------------------------
   use mod_precdefs
   use mod_errors
@@ -210,27 +211,6 @@ contains
       call throw_error("postprocess :: add_counter_measure", "Unknown measure type: "//measure_type)
     end select
 
-    ! select case (btm)
-    ! case (.false.) ! Add a water column measure
-    !   select case (measure_type)
-    !   case ("snapshot")
-    !     call this%measures%add_node(name, t_counter_snapshot(name, this%nlon, this%nlat, this%ndep, unit))
-    !   case ("accumulator")
-    !     call this%measures%add_node(name, t_counter_accumulator(name, this%nlon, this%nlat, this%ndep, unit))
-    !   case default
-    !     call throw_error("postprocess :: add_basic_measure", "Unknown measure type: "//measure_type)
-    !   end select
-    ! case (.true.) ! Add a settled measure
-    !   select case (measure_type)
-    !   case ("snapshot")
-    !     call this%measures%add_node(name, t_settled_counter_snapshot(name, this%nlon, this%nlat, unit))
-    !   case ("accumulator")
-    !     call this%measures%add_node(name, t_settled_counter_accumulator(name, this%nlon, this%nlat, unit))
-    !   case default
-    !     call throw_error("postprocess :: add_basic_measure", "Unknown measure type: "//measure_type)
-    !   end select
-    ! end select
-
   end subroutine add_counter_measure
   !===========================================
   subroutine add_property_measure(this, name, unit, measure_type, bottom, variable_name)
@@ -255,27 +235,6 @@ contains
     case default
       call throw_error("postprocess :: add_property_measure", "Unknown measure type: "//measure_type)
     end select
-
-    ! select case (btm)
-    ! case (.false.)
-    !   select case (measure_type)
-    !   case ("snapshot")
-    !     call this%measures%add_node(name, t_property_snapshot(name, this%nlon, this%nlat, this%ndep, unit, variable_name))
-    !   case ("accumulator")
-    !     call this%measures%add_node(name, t_property_accumulator(name, this%nlon, this%nlat, this%ndep, unit, variable_name))
-    !   case default
-    !     call throw_error("postprocess :: add_property_measure", "Unknown measure type: "//measure_type)
-    !   end select
-    ! case (.true.)
-    !   select case (measure_type)
-    !   case ("snapshot")
-    !     call this%measures%add_node(name, t_settled_property_snapshot(name, this%nlon, this%nlat, unit, variable_name))
-    !   case ("accumulator")
-    !     call this%measures%add_node(name, t_settled_property_accumulator(name, this%nlon, this%nlat, unit, variable_name))
-    !   case default
-    !     call throw_error("postprocess :: add_property_measure", "Unknown measure type: "//measure_type)
-    !   end select
-    ! end select
 
   end subroutine add_property_measure
   !===========================================
@@ -462,8 +421,6 @@ contains
 
     call this%get_index(pos_arr, i, j, k, size(p))
 
-    ! debug(i); debug(j)
-
     !$omp parallel do private(measure)
     do imeasure = 1, this%measures%size()
       call this%measures%get_item(imeasure, measure)
@@ -508,8 +465,6 @@ contains
 
     dbghead(postprocess :: get_index)
 
-    ! debug(lon); debug(lat)
-
     i = floor((pos(:, 1) - this%lonmin) / this%dlon) + 1; debug(i)
     j = floor((pos(:, 2) - this%latmin) / this%dlat) + 1; debug(j)
     if (this%ndep > 1) then
@@ -518,24 +473,16 @@ contains
       k = 1
     end if
 
-    ! if (i < 1) then
     where (i < 1)
-      ! DBG, "i < 1: i = ", i
       i = 1
     elsewhere(i > size(this%bin_lon) - 1)
-      ! DBG, "i > bin_lon: i = ", i, size(this%bin_lon) - 1
       i = size(this%bin_lon) - 1
     end where
 
-    ! if (j < 1) then
     where (j < 1)
-      ! DBG, "j < 1: j = ", j
       j = 1
-      ! elseif (j > size(this%bin_lat) - 1) then
     elsewhere(j > size(this%bin_lat) - 1)
-      ! DBG, "j > bin_lat: i = ", i, size(this%bin_lat) - 1
       j = size(this%bin_lat) - 1
-      ! end if
     end where
 
     dbgtail(postprocess :: get_index)
@@ -548,14 +495,9 @@ contains
     real(rk) :: dateval(1)
     integer :: ncid, varid, imeasure
     class(t_variable), pointer :: measure
-    ! character(len=LEN_CHAR_L) :: info
     integer, allocatable :: start(:), count(:)
 
     if (mod(itime, this%outputstep) /= 0) return
-
-    ! write (info, '(a,i11,a,i9,a)') "| "//date%nice_format()//" | Writing post output ", itime, " | ", this%measures%size(), " measures |"
-!       FMT2, LINE, LINE, LINE
-    !       FMT2, trim(info)
 
     call nc_check(trim(this%outfile), nf90_open(trim(this%outfile), nf90_write, ncid), "postprocessor :: save :: open")
     call nc_check(trim(this%outfile), nf90_inq_varid(ncid, "time", varid), "postprocessor :: save :: inq_varid")

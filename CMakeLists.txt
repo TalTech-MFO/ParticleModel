@@ -3,16 +3,9 @@ cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-if (NOT CMAKE_Fortran_COMPILER)
-    message(STATUS "Selecting gfortran 13")
-    set(CMAKE_Fortran_COMPILER gfortran-13)
-endif()
-set(CMAKE_C_COMPILER gcc)
-set(CMAKE_CXX_COMPILER g++)
 
 # Set the name of the project
 project(ParticleModel Fortran)
-
 
 #=================================
 # Source paths
@@ -45,10 +38,8 @@ include_directories(${INC_DIR})
 # Biofouling implementation
 #=================================
 # Set the default implementation
-# - simple
-# - kooi
-# - tsiaras
-set(BIOFOULING_IMPL simple)
+# - chl_proxy
+set(BIOFOULING_IMPL chl_proxy)
 message(STATUS "Using biofouling implementation: ${BIOFOULING_IMPL}")
 file(GLOB IMPL_SOURCES ${SRC_DIR}/biofouling/${BIOFOULING_IMPL}/*.f90)
 message(STATUS "Using biofouling implementation source files: ${IMPL_SOURCES}")
@@ -61,8 +52,8 @@ list(APPEND SOURCES ${IMPL_SOURCES})
 execute_process(COMMAND nf-config --includedir OUTPUT_VARIABLE NETCDF_INCLUDE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND nf-config --flibs OUTPUT_VARIABLE NETCDF_LIBRARIES OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-message(STATUS "Using netCDF4 include directory: ${NETCDF_INCLUDE_DIR}")
-message(STATUS "Using netCDF4 libraries: ${NETCDF_LIBRARIES}")
+message(STATUS "netCDF4 include directory: ${NETCDF_INCLUDE_DIR}")
+message(STATUS "netCDF4 libraries: ${NETCDF_LIBRARIES}")
 
 # Append the netCDF4 include directories to the include target
 include_directories(${NETCDF_INCLUDE_DIR})
@@ -77,7 +68,7 @@ endif()
 
 # Set the compiler flags
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -Wall -ffree-line-length-none -Wcharacter-truncation -Wsurprising -Waliasing -Wimplicit-interface -Wunused-parameter -fwhole-file -fcheck=all -fbacktrace -mcmodel=large -march=native")
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DSNAP_TO_BOUNDS -DSMAGORINSKY_INTERP_UV -DPARTICLE_SNAP_SEALVL -DIGNORE_BAD_PARTICLES -DBIOFOULING_SIMPLE -DNO_DIFFUSE_VERTICAL")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DSNAP_TO_BOUNDS -DPARTICLE_SNAP_SEALVL -DIGNORE_BAD_PARTICLES -DBIOFOULING_SIMPLE -DNO_DIFFUSE_VERTICAL")
 
 # Set the optimization flags for the release configuration
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -g -DUSE_OMP -fopenmp")
@@ -91,7 +82,6 @@ if (BUILD_FOR_PROFILING)
     message(STATUS "Configuring with -pg and -no-pie")
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -pg -no-pie")
 endif()
-
 
 # Add the executable target
 add_executable(${PROJECT_NAME} ${SOURCES})
