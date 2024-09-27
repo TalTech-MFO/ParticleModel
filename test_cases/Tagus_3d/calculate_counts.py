@@ -80,7 +80,8 @@ def get_counts_by_state(x, y, state, binx, biny):
     nanmask = nanmask[:, 0] + nanmask[:, 1]
     positions = positions[~nanmask]
     state = state[~nanmask]
-    bins = np.array([binx, biny])
+    # bins = np.array([binx, biny])
+    bins = [binx, biny]
 
     for istate in state_vals.keys():
         if (istate not in u_states):
@@ -112,7 +113,7 @@ def get_scaled_concentration(x, y, state, ids, binx, biny):
     state = state[~nanmask]
     ids = ids[~nanmask]
 
-    bins = np.array([binx, biny])
+    bins = [binx, biny]
 
     # For each id, get the number of particles in each state
     for istate in state_vals.keys():
