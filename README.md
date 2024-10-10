@@ -6,7 +6,7 @@
 Download the code:
 
 ```
-git clone https://github.com/rix71/ParticleModel.git
+git clone https://github.com/TalTech-MFO/ParticleModel.git
 ```
 
 Configure and build:
