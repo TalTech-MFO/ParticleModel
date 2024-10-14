@@ -1,6 +1,12 @@
 #!/bin/bash
 #==================================
-export OMP_NUM_THREADS=8
+if [ -n "$SLURM_CPUS_PER_TASK" ]; then
+    omp_threads=$SLURM_CPUS_PER_TASK
+else
+    omp_threads=30
+fi
+#==================================
+export OMP_NUM_THREADS=$omp_threads
 #==================================
 # Namelist variables
 export runid="gof_250m_3d"
@@ -12,7 +18,7 @@ export run_3d=True
 export dry_run=False
 
 # Hydrodynamic data
-export getmpath="${PWD}/data/hydro"
+export getmpath="${PWD}/data/hydro_small"
 export topofile="${PWD}/data/topo/topo.nc"
 export pmapfile="${PWD}/data/topo/par_setup.dat"
 export file_prefix="gof_0125nm.3d."
@@ -26,6 +32,8 @@ export latvarname="lat"
 export uvarname="uu"
 export vvarname="vv"
 export zaxvarname="h"
+export taubxvarname="" # Disable reading these variables
+export taubyvarname="" # Disable reading these variables
 
 # Model domain
 export nx=1557
@@ -35,12 +43,13 @@ export has_subdomains=True
 export zax_style=2
 
 # Advetion + buoyancy
-export do_velocity=False
+export advection_method=2
+export do_velocity=True
 export sw_rho_default=1006.
 
 # Diffusion
-export do_diffusion=False
-export cm_smagorinsky=0.3
+export do_diffusion=True
+export cm_smagorinsky=0.01
 
 # Resuspension
 export resuspension_coeff=0.05
@@ -48,8 +57,8 @@ export resuspension_threshold=0.148
 
 # Biofouling
 export do_biofouling=False
-gt=10 # growth time in days
-export growth_timescale=`python3 -c "print($gt*24.*3600.)"` # in seconds
+gt=10                                                        # growth time in days
+export growth_timescale=$(python3 -c "print($gt*24.*3600.)") # in seconds
 
 # Boundary interactions
 export kill_beached=True
@@ -57,20 +66,26 @@ export kill_boundary=True
 
 # Time
 # Start and end dates for each run are set below
-export dt=30.
+export dt=600.
 
 # Input
-export particle_init_method=1
-export coordfile="${PWD}/data/input/particles.in"
+export particle_init_method=2
+export coordfile="${PWD}/data/input/rivers_gof.nc"
 in_hours=999999
-export inputstep=`python3 -c "print(int($in_hours*3600./$dt))"`
+export inputstep=$(python3 -c "print(int($in_hours*3600./$dt))")
 
 # Output
-out_hours=6
-export outputstep=`python3 -c "print(int($out_hours*3600./$dt))"`
+out_hours=1
+export outputstep=$(python3 -c "print(int($out_hours*3600./$dt))")
 export write_all_particles=True
 export write_active_particles=False
 export write_snapshot=False
+
+# Postprocess
+export enable_postprocessing=False
+export postprocessor_output_frequency=$outputstep
+export postprocessor_grid_size=250.
+export postprocessor_nlevels=30
 
 # Restart
 # Restart variable is set below
@@ -83,6 +98,7 @@ RUN_DIR=${PWD}
 BASE_DIR=${RUN_DIR}/../..
 NML_PATH=${BASE_DIR}/nml
 #--------------------
+# MODEL_DIR=${BASE_DIR}/bin
 MODEL_DIR=${BASE_DIR}/build
 MODEL_BIN=${MODEL_DIR}/ParticleModel
 #--------------------
@@ -90,9 +106,9 @@ OUT_BASE_DIR="${RUN_DIR}/out"
 #--------------------
 # Entire simulation period
 sim_start="2019-01-03"
-sim_end="2019-01-06"
+sim_end="2019-01-04"
 #--------------------
-step_days=3
+step_days=1
 #--------------------
 date_start=$(date -I -d "$sim_start")
 date_end=$(date -I -d "$sim_end")
@@ -111,14 +127,14 @@ tic=$(date +%s)
 #--------------------
 while [ $(date -d "$dateval" +%s) -lt $(date -d "$date_end" +%s) ]; do
     #--------------------
-    num_run=$((num_run+1))
+    num_run=$((num_run + 1))
     echo "===================="
     echo "This is run number $num_run"
     echo "Date: $dateval"
     #--------------------
     # Set run start and end dates
     export run_start=$dateval' 12:00:00'
-    export run_end=$(date -I -d "$dateval+$step_days day")' 00:00:00'
+    export run_end=$(date -I -d "$dateval+$step_days day")' 12:00:00'
     #--------------------
     echo "The model is running from $run_start to $run_end"
     #--------------------
@@ -132,7 +148,7 @@ while [ $(date -d "$dateval" +%s) -lt $(date -d "$date_end" +%s) ]; do
         first_run=False
         export restart=False
     else
-        # Copy restart file from previous run
+        # Move restart file from previous run
         echo "Moving restart file to the next folder..."
         mv ${outdir_prev}/*${YYYYMMDD}*restart* ${outdir}/.
         err=$?
@@ -141,6 +157,17 @@ while [ $(date -d "$dateval" +%s) -lt $(date -d "$date_end" +%s) ]; do
             echo "ERROR: Restart file not found"
             echo "===================="
             exit 1
+        fi
+        echo "Moving postprocessor restart file to the next folder..."
+        if [ $enable_postprocessing = True ]; then
+            mv ${outdir_prev}/*.post.restart.nc ${outdir}/.
+            err=$?
+            if [ $err -ne 0 ]; then
+                echo "===================="
+                echo "ERROR: Post restart file not found"
+                echo "===================="
+                exit 1
+            fi
         fi
         export restart=True
         export restart_path="${outdir}"
@@ -157,7 +184,7 @@ while [ $(date -d "$dateval" +%s) -lt $(date -d "$date_end" +%s) ]; do
         echo "===================="
         exit 1
     fi
-    python3 ${NML_PATH}/makenamelist.py -i ${NML_PATH}/nmltemplate_biofouling_simple -o biofouling.inp
+    python3 ${NML_PATH}/makenamelist.py -i ${NML_PATH}/nmltemplate_biofouling_chl_proxy -o biofouling.inp
     err=$?
     if [ $err -ne 0 ]; then
         echo "===================="
@@ -166,6 +193,7 @@ while [ $(date -d "$dateval" +%s) -lt $(date -d "$date_end" +%s) ]; do
         exit 1
     fi
     cp input.inp ${outdir}/.
+    cp biofouling.inp ${outdir}/.
     #--------------------
     # Run model
     echo "Running model..."
@@ -184,10 +212,6 @@ while [ $(date -d "$dateval" +%s) -lt $(date -d "$date_end" +%s) ]; do
     echo "Model wall time: $((toc_m-tic_m)) seconds" 
     echo "===================="
     #--------------------
-    # Copy output
-    echo "Copying output to run folder..."
-    cp ${runid}.stdout ${outdir}/.
-    #--------------------
     dateval=$(date -I -d "$dateval+$step_days day")
 done
 toc=$(date +%s)
@@ -195,3 +219,19 @@ echo "===================="
 echo "All finished!"
 echo "Total time: $((toc-tic)) seconds"
 echo "===================="
+#======================================================================
+# PLOTTING THE RESULTS
+#======================================================================
+clear
+mkdir -p ${OUT_BASE_DIR}/counts
+for d in $(ls -d ${OUT_BASE_DIR}/2*); do
+    echo "Calculating counts in $d"
+    python3 calculate_counts.py -O -np 8 -s $d/${runid}.out.nc -o ${OUT_BASE_DIR}/counts/counts.$(basename $d).nc --topo-file ${topofile} -dx 500
+done
+mkdir -p ${OUT_BASE_DIR}/figs
+python3 plot_counts.py -s ${OUT_BASE_DIR}/counts/counts.*.nc -o ${OUT_BASE_DIR}/figs
+
+echo "===================="
+echo "All finished!"
+echo "===================="
+ 

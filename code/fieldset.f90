@@ -49,6 +49,7 @@ module mod_fieldset
     !---------------------------------------------
     ! netCDF read variables
     logical                   :: read_first = .true.
+    logical                   :: has_more = .true.
     integer                   :: read_idx
     integer                   :: read_idx_increment = 1
     character(len=LEN_CHAR_L) :: current_path   ! Path to current data
@@ -729,22 +730,35 @@ contains
   end function get_time
   !===========================================
   character(len=LEN_CHAR_L) function get_directory(this, idx) result(res)
-    class(t_fieldset), intent(in) :: this
+    class(t_fieldset), intent(inout) :: this
     integer, intent(in)           :: idx
 
     if (idx < 1) call throw_error("fieldset :: get_directory", "Index out of bounds (idx < 1)")
-    if (idx > this%nentries) call throw_error("fieldset :: get_directory", "Index out of bounds (idx > number of folders)")
+    if (idx > this%nentries) then
+       ! call throw_error("fieldset :: get_directory", "Index out of bounds (idx > number of folders)")
+       ! If the index is larger than the number of entries then it PROBABLY means that we 
+       ! are at the end of the dataset and we should not try to read anymore. If fieldset::update is 
+       ! called again, then an error should be thrown.
+       this%has_more = .false.
+       res = this%current_path
+       return
+    endif 
     write (res, '(a,i0.8)') trim(this%PATH)//'/', this%dirlist(idx)
 
     return
   end function get_directory
   !===========================================
   character(len=LEN_CHAR_L) function get_file(this, idx) result(res)
-    class(t_fieldset), intent(in) :: this
+    class(t_fieldset), intent(inout) :: this
     integer, intent(in)           :: idx
 
     if (idx < 1) call throw_error("fieldset :: get_file", "Index out of bounds (idx < 1)")
-    if (idx > this%nentries) call throw_error("fieldset :: get_file", "Index out of bounds (idx > number of files)")
+    if (idx > this%nentries) then 
+      ! call throw_error("fieldset :: get_file", "Index out of bounds (idx > number of files)")
+      this%has_more = .false.
+      res = this%current_path
+      return
+    end if
     write (res, '(a)') trim(this%PATH)//'/'//trim(this%filelist(idx))
 
     return
@@ -1210,6 +1224,10 @@ contains
     ! Check if it's even time to readk
     if ((.not. ign_chk) .and. (date < this%next_read_dt)) then
       return
+    end if
+
+    if (.not. this%has_more) then
+      call throw_error("fieldset :: update", "Trying to update when there are no more data to be read. Ensure that the dataset covers the simulation period.")
     end if
 
 #ifdef DEBUG
