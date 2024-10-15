@@ -56,7 +56,7 @@ export resuspension_coeff=0.05
 export resuspension_threshold=0.148
 
 # Biofouling
-export do_biofouling=False
+export do_biofouling=True
 gt=10                                                        # growth time in days
 export growth_timescale=$(python3 -c "print($gt*24.*3600.)") # in seconds
 
@@ -106,9 +106,9 @@ OUT_BASE_DIR="${RUN_DIR}/out"
 #--------------------
 # Entire simulation period
 sim_start="2019-01-03"
-sim_end="2019-01-04"
+sim_end="2019-01-05"
 #--------------------
-step_days=1
+step_days=2
 #--------------------
 date_start=$(date -I -d "$sim_start")
 date_end=$(date -I -d "$sim_end")
